@@ -1,245 +1,278 @@
-import os, json, time, threading, asyncio
+# utils/market_data_cryptofeed.py
+import asyncio
+from collections import defaultdict, deque
+from dataclasses import dataclass
+from typing import Dict, Deque, Optional, List, Tuple
 import pandas as pd
 
-from utils.logger import Notifier, log_trade, log_status, log_equity
-from utils.trade_executor import PaperBroker
-from utils.data_fetchers import load_crypto_whitelist
-from utils.exchange_utils import get_exchange, filter_supported_symbols
-from strategies.ai_combo_strategy import generate_signal
-from utils.scanner_helper import run_scanner
+from cryptofeed import FeedHandler
+from cryptofeed.defines import TICKER, TRADES
+from cryptofeed import exchanges as CFEX  # dynamic class lookup
 
-# ---- Try cryptofeed hub, but don’t die if it’s missing
-HAS_CF = True
-try:
-    from utils.market_data_cryptofeed import CryptoFeedHub, slash_to_norm, register_global_hub
-except Exception as e:
-    print("[BOOT] Live market data (cryptofeed) unavailable:", e)
-    HAS_CF = False
-    def slash_to_norm(s: str) -> str:
-        return s.replace("/", "-")  # fallback normalizer
-    def register_global_hub(_):  # no-op
-        pass
+# -------- module-level hub registry
+_GLOBAL_HUB = None
+def register_global_hub(hub):
+    global _GLOBAL_HUB
+    _GLOBAL_HUB = hub
 
-BASE = os.path.dirname(__file__)
-with open(os.path.join(BASE, "config", "config.json"), "r") as f:
-    CFG = json.load(f)
+def get_global_hub():
+    return _GLOBAL_HUB
 
-EXCHANGE = get_exchange()
+# -------- helpers
 
-# ---------- Cryptofeed bootstrap
-def _mk_feed_cfg(cfg):
-    df = cfg.get("data_feeds", {})
-    symbols_src = df.get("symbols") or [slash_to_norm(s) for s in cfg.get("trade_universe", [])]
-    if not symbols_src:
-        symbols_src = ["BTC-USDT", "ETH-USDT"]
+def norm_to_slash(sym: str) -> str:
+    return sym.replace("-", "/")  # "BTC-USDT" -> "BTC/USDT"
 
-    exchanges_src = df.get("exchanges")
-    if not exchanges_src:
-        ex = cfg.get("exchange", "BINANCE")
-        exchanges_src = [ex.upper()]
+def slash_to_norm(sym: str) -> str:
+    return sym.replace("/", "-")  # "BTC/USDT" -> "BTC-USDT"
 
-    channels_src = df.get("channels") or ["ticker", "trades"]
+# Robust resolver for exchange classes across cryptofeed versions
+_EX_CANDIDATES = {
+    "BINANCE":  ["Binance"],
+    "BITFINEX": ["Bitfinex"],
+    "BYBIT":    ["Bybit", "BYBIT"],
+    "OKX":      ["OKX", "Okx"],
+    "KUCOIN":   ["Kucoin", "KuCoin"],
+    "GATEIO":   ["Gateio", "GateIO"],
+    "KRAKEN":   ["Kraken"],
+}
 
-    return {
-        "data_feeds": {
-            "exchanges": exchanges_src,
-            "channels": channels_src,
-            "symbols": symbols_src,
-            "normalize_symbols": True
-        }
-    }
+def _resolve_exchange_class(name: str):
+    upper = str(name).upper()
+    for cand in _EX_CANDIDATES.get(upper, []):
+        ex_cls = getattr(CFEX, cand, None)
+        if ex_cls is not None:
+            return ex_cls
+    print(f"[FEED] Unknown exchange in config (no class found): {name}")
+    return None
 
-_feed_hub = None
-if HAS_CF:
-    _feed_hub = CryptoFeedHub(_mk_feed_cfg(CFG))
-    register_global_hub(_feed_hub)
+@dataclass
+class TickerSnapshot:
+    price: float
+    volume_24h: Optional[float]
+    ts: float
 
-def _run_feed_in_bg():
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(_feed_hub.run())
+@dataclass
+class TradePrint:
+    price: float
+    size: float
+    ts: float
 
-def start_market_data():
-    t = threading.Thread(target=_run_feed_in_bg, daemon=True)
-    t.start()
+class AtrEstimator:
+    def __init__(self, minutes: int = 14):
+        self.window = minutes
+        self.curr_minute: Optional[int] = None
+        self.ohlc: Optional[List[float]] = None  # [o, h, l, c]
+        self.last_close: Optional[float] = None
+        self.tr_values: Deque[float] = deque(maxlen=minutes)
 
-from utils.trending_feed import start_trending_feed
+    def on_trade(self, ts_sec: float, price: float):
+        minute = int(ts_sec // 60)
+        if self.curr_minute is None:
+            self.curr_minute = minute
+            self.ohlc = [price, price, price, price]
+            return
+        if minute != self.curr_minute:
+            o, h, l, c = self.ohlc  # type: ignore
+            prev_close = self.last_close if self.last_close is not None else o
+            tr = max(h - l, abs(h - prev_close), abs(l - prev_close))
+            self.tr_values.append(tr)
+            self.last_close = c
+            self.curr_minute = minute
+            self.ohlc = [price, price, price, price]
+        else:
+            o, h, l, _ = self.ohlc  # type: ignore
+            h = max(h, price)
+            l = min(l, price)
+            self.ohlc = [o, h, l, price]
 
-# ---------- helpers
-def fetch_candles(symbol, timeframe="5m", limit=200):
-    if HAS_CF and _feed_hub is not None:
-        try:
-            df = _feed_hub.ohlcv_df(symbol, timeframe=timeframe, limit=limit)
-            if df is not None and not df.empty:
-                return df[["time","open","high","low","close","volume"]].copy()
-        except Exception as e:
-            print(f"[WARN] ohlcv_df error {symbol}: {e}")
+    @property
+    def atr(self) -> Optional[float]:
+        if len(self.tr_values) < max(1, (self.tr_values.maxlen or 1) // 2):
+            return None
+        return sum(self.tr_values) / len(self.tr_values)
 
-    for _ in range(2):
-        try:
-            ohlcv = EXCHANGE.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
-            return pd.DataFrame(ohlcv, columns=["time", "open", "high", "low", "close", "volume"])
-        except Exception as e:
-            print(f"[WARN] fetch_ohlcv error {symbol}: {e}")
-            time.sleep(1)
-    return pd.DataFrame()
+class CryptoFeedHub:
+    """
+    Maintains:
+      - latest ticker per symbol
+      - rolling trades & ATR estimator
+      - simple OHLCV aggregation from trades (1m/5m/15m)
+    """
+    def __init__(self, cfg):
+        self.cfg = cfg
+        self._ticker: Dict[str, TickerSnapshot] = {}
+        self._trades: Dict[str, Deque[TradePrint]] = defaultdict(lambda: deque(maxlen=10000))
+        self._atr: Dict[str, AtrEstimator] = defaultdict(lambda: AtrEstimator(minutes=14))
+        self._fh: Optional[FeedHandler] = None
+        self._ready_evt = asyncio.Event()
+        self._printed_ready = False
 
-def maybe_run_scanner(last_scan_ts):
-    now = time.time()
-    refresh_min = CFG.get("scanner", {}).get("refresh_minutes", 90)
-    if (now - last_scan_ts) >= (refresh_min * 60):
-        print(f"[SCANNER] Running symbol scanner (every {refresh_min} min)…")
-        try:
-            syms = run_scanner(CFG)
-            print(f"[SCANNER] Updated runtime whitelist with {len(syms)} symbols.")
-        except Exception as e:
-            print("[SCANNER] failed:", e)
-        return now
-    return last_scan_ts
+    # ---------- callbacks
 
-def compute_unrealized_pnl(broker, prices):
-    pnl = 0.0
-    for sym, pos in broker.positions.items():
-        price = prices.get(sym)
+    async def _on_ticker(self, feed, pair, bid, ask, timestamp, receipt_timestamp, **kwargs):
+        # Normalize key to DASHED form so all lookups are consistent
+        key = slash_to_norm(pair)  # e.g., "XBT/USDT" -> "XBT-USDT"
+        price = None
+        if bid is not None and ask is not None:
+            price = (bid + ask) / 2.0
+        else:
+            price = kwargs.get('last', None)
         if price is None:
-            continue
-        pnl += pos["qty"] * (price - pos["entry"])
-    return pnl
+            return
+        vol = kwargs.get('volume', None)
+        self._ticker[key] = TickerSnapshot(
+            price=float(price),
+            volume_24h=(float(vol) if vol is not None else None),
+            ts=float(timestamp),
+        )
+        if not self._printed_ready:
+            print(f"[FEED] First ticker received for {pair}")
+            self._printed_ready = True
+        self._ready_evt.set()
 
-def get_exit_cfg():
-    exits = CFG.get("exits", {})
-    trailing = CFG.get("trailing_stop", {})
-    return {
-        "take_profit_pct": exits.get("take_profit_pct"),
-        "stop_loss_pct": exits.get("stop_loss_pct"),
-        "breakeven_trigger_pct": trailing.get("breakeven_pct"),
-        "trailing_stop_pct": trailing.get("trail_pct"),
-        "trailing_enable": trailing.get("enable", True),
-        "activate_profit_pct": trailing.get("activate_profit_pct"),
-    }
+    async def _on_trade(self, feed, pair, order_id, timestamp, side, amount, price, receipt_timestamp, **kwargs):
+        key = slash_to_norm(pair)  # store trades under the same dashed key
+        tp = TradePrint(price=float(price), size=float(amount), ts=float(timestamp))
+        dq = self._trades[key]
+        dq.append(tp)
+        self._atr[key].on_trade(tp.ts, tp.price)
+        if key not in self._ticker:
+            self._ready_evt.set()
 
-def run():
-    print("[BOOT] Launching bot…")
-    print(f"[BOOT] Exchange: {CFG.get('exchange')} | Timeframe: {CFG.get('timeframe_crypto','5m')}")
-    n = Notifier(CFG)
-    broker = PaperBroker()
-    exit_cfg = get_exit_cfg()
+    # ---------- public API
 
-    # Start live market data and trending feed ONCE here
-    if HAS_CF and _feed_hub is not None:
-        start_market_data()
-        start_trending_feed(interval_min=5)
+    def list_symbols(self) -> List[str]:
+        # Report in slash form to user code
+        syms = set(self._ticker.keys()) | set(self._trades.keys())
+        return [norm_to_slash(s) for s in sorted(syms)]
+
+    def snapshot(self, slash_symbol: str) -> Tuple[Optional[float], Optional[float]]:
+        key = slash_to_norm(slash_symbol)
+        tick = self._ticker.get(key)
+        if not tick:
+            return (None, None)
+        return (tick.price, tick.volume_24h)
+
+    def atr_pct(self, slash_symbol: str) -> Optional[float]:
+        key = slash_to_norm(slash_symbol)
+        atr = self._atr[key].atr
+        tick = self._ticker.get(key)
+        price = tick.price if tick else None
+        if atr is None or price is None or price == 0:
+            return None
+        return (atr / price) * 100.0
+
+    def ohlcv_df(self, slash_symbol: str, timeframe: str = "5m", limit: int = 200) -> Optional[pd.DataFrame]:
+        key = slash_to_norm(slash_symbol)
+        trades = list(self._trades.get(key, []))
+        if not trades:
+            return pd.DataFrame()
+
+        tf_map = {"1m": 60, "5m": 300, "15m": 900}
+        step = tf_map.get(timeframe, 300)
+
+        buckets: Dict[int, List[float]] = {}
+        for t in trades:
+            b = int(t.ts // step) * step
+            if b not in buckets:
+                buckets[b] = [t.price, t.price, t.price, t.price, t.size]
+            else:
+                o, h, l, _, v = buckets[b]
+                h = max(h, t.price)
+                l = min(l, t.price)
+                c = t.price
+                v = v + t.size
+                buckets[b] = [o, h, l, c, v]
+
+        if not buckets:
+            return pd.DataFrame()
+
+        rows = [[b * 1000, *buckets[b]] for b in sorted(buckets.keys())]
+        df = pd.DataFrame(rows, columns=["time","open","high","low","close","volume"])
+        if limit and len(df) > limit:
+            df = df.iloc[-limit:].reset_index(drop=True)
+        return df
+
+    async def wait_ready(self, timeout: float = 10.0):
         try:
-            asyncio.run(_feed_hub.wait_ready(timeout=15.0))  # give feeds time to warm up
-        except RuntimeError:
+            await asyncio.wait_for(self._ready_evt.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
             pass
 
-    try:
-        wl = filter_supported_symbols(EXCHANGE, load_crypto_whitelist())
-    except Exception as e:
-        print("[BOOT] load_markets/whitelist failed, falling back:", e)
-        wl = []
+    # ---------- runner
+    def run(self):
+        df = self.cfg.get("data_feeds", {})
+        exchanges = df.get("exchanges", [])
+        channels_cfg = df.get("channels", [])
+        symbols = df.get("symbols", [])
 
-    if not wl:
-        wl = ["BTC/USDT", "ETH/USDT"]
-    print(f"[BOOT] Starting with {len(wl)} symbols: {', '.join(wl[:10])}{'…' if len(wl)>10 else ''}")
+        want_ticker = "ticker" in [c.lower() for c in channels_cfg]
+        want_trades = "trades" in [c.lower() for c in channels_cfg]
+        chan_list = []
+        if want_ticker: chan_list.append(TICKER)
+        if want_trades: chan_list.append(TRADES)
+        if not chan_list:
+            print("[FEED] No channels requested; nothing to run.")
+            return
 
-    last_scan_ts = 0.0
-    prices = {}
-    heartbeat_every = max(10, CFG.get("logging", {}).get("print_status_every_sec", 30))
-    last_beat = 0
+        subs: Dict[type, Dict[str, List[str]]] = {}
+        for ex in exchanges:
+            ex_cls = _resolve_exchange_class(ex)
+            if not ex_cls:
+                continue
+            subs[ex_cls] = {ch: symbols for ch in chan_list}
+        if not subs:
+            print("[FEED] No valid subscriptions assembled; nothing to run.")
+            return
 
-    while True:
-        last_scan_ts = maybe_run_scanner(last_scan_ts)
-
-        try:
-            # Scanner results
-            scanner_syms = filter_supported_symbols(EXCHANGE, load_crypto_whitelist()) or []
-
-            # Trending results
-            trending_path = os.path.join(BASE, "data", "runtime", "runtime_whitelist.json")
-            trending_syms = []
-            if os.path.exists(trending_path):
+        self._fh = FeedHandler()
+        for ex_cls, chans in subs.items():
+            cbs = {}
+            if TICKER in chans: cbs[TICKER] = self._on_ticker
+            if TRADES in chans: cbs[TRADES] = self._on_trade
+            try_syms = sorted({s for syms in chans.values() for s in syms})
+            print(f"[FEED] Adding {ex_cls.__name__} with channels={list(chans.keys())} symbols={try_syms}")
+            added = False
+            try:
+                self._fh.add_feed(ex_cls(subscribe=chans, callbacks=cbs))
+                added = True
+            except Exception as e:
+                print(f"[FEED] {ex_cls.__name__} subscribe= path failed: {e.__class__.__name__}: {e}")
+            if not added:
                 try:
-                    with open(trending_path, "r", encoding="utf-8") as f:
-                        trending_syms = json.load(f)
-                except Exception:
-                    pass
+                    self._fh.add_feed(ex_cls(symbols=try_syms, channels=list(chans.keys()), callbacks=cbs))
+                    added = True
+                except Exception as e:
+                    print(f"[FEED] {ex_cls.__name__} symbols/channels path failed: {e.__class__.__name__}: {e}")
+            if added:
+                print(f"[FEED] Added {ex_cls.__name__}")
+            else:
+                print(f"[FEED] Skipping {ex_cls.__name__} due to startup errors.")
 
-            # Merge and dedupe, trending first
-            merged_syms = []
-            seen = set()
-            for s in trending_syms + scanner_syms:
-                if s not in seen:
-                    seen.add(s)
-                    merged_syms.append(s)
+        print("[FEED] Starting FeedHandler...")
 
-            max_syms = CFG.get("scanner", {}).get("max_symbols", 20)
-            wl = merged_syms[:max_syms] if merged_syms else wl
-
-            print(f"[WL] Active trading list ({len(wl)}): {', '.join(wl)}")
-
+        # Create and own an event loop in main thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            self._fh.run(start_loop=False)
+            loop.run_forever()
+        except KeyboardInterrupt:
+            print("\n[FEED] Ctrl+C received. Shutting down feed...")
         except Exception as e:
-            print("[LOOP] whitelist merge failed:", e)
-
-        processed = 0
-        for sym in wl[:50]:
-            live_price = None
-            if HAS_CF and _feed_hub is not None:
-                lp, _vol = _feed_hub.snapshot(sym)
-                live_price = lp
-
-            df = fetch_candles(sym, CFG.get("timeframe_crypto", "5m"))
-
-            price = None
-            if live_price is not None:
-                price = float(live_price)
-            elif not df.empty:
-                price = float(df["close"].iloc[-1])
-
-            if price is None:
-                continue
-
-            prices[sym] = price
-            processed += 1
-
-            if sym in broker.positions:
-                should_exit, reason = broker.should_exit(sym, price)
-                if should_exit:
-                    r = broker.sell(sym, price)
-                    if r:
-                        log_trade("SELL", sym, 0, price, {"pnl": r["pnl"], "reason": reason})
-                        n.send(f"SELL {sym} @ {price:.4f} | PnL: {r['pnl']:.2f} ({reason})")
-                continue
-
-            if not df.empty and broker.can_open():
-                sig = generate_signal(df, CFG)
-                if sig.get("signal") == "BUY":
-                    o = broker.buy(sym, price, {
-                        "score": sig.get("score"),
-                        "take_profit_pct": exit_cfg["take_profit_pct"],
-                        "stop_loss_pct": exit_cfg["stop_loss_pct"],
-                        "breakeven_trigger_pct": exit_cfg["breakeven_trigger_pct"],
-                        "trailing_stop_pct": exit_cfg["trailing_stop_pct"],
-                        "trailing_enable": exit_cfg["trailing_enable"],
-                        "activate_profit_pct": exit_cfg["activate_profit_pct"],
-                    })
-                    if o:
-                        log_trade("BUY", sym, o["qty"], price, {"score": sig.get("score")})
-                        n.send(f"BUY {sym} @ {price:.4f} [score={sig.get('score', 0):.2f}]")
-
-        now = time.time()
-        if now - last_beat >= heartbeat_every:
-            unreal = compute_unrealized_pnl(broker, prices)
-            mv = sum([pos["qty"] * prices.get(sym, pos["entry"]) for sym, pos in broker.positions.items()])
-            cost = sum([pos["qty"] * pos["entry"] for pos in broker.positions.values()])
-            equity = broker.balance + mv - cost
-            log_status(broker.balance, len(broker.positions), unreal)
-            log_equity(now, broker.balance, equity)
-            print(f"[HB] cash={broker.balance:.2f} open={len(broker.positions)} unreal={unreal:.2f} scanned={processed}")
-            last_beat = now
-
-        time.sleep(10)
-
-if __name__ == "__main__":
-    run()
+            print("[FEED] FeedHandler exited with error:", e)
+        finally:
+            try:
+                for task in asyncio.all_tasks(loop):
+                    task.cancel()
+            except Exception:
+                pass
+            try:
+                loop.stop()
+            except Exception:
+                pass
+            try:
+                loop.close()
+            except Exception:
+                pass
