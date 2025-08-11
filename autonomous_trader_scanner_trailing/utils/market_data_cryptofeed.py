@@ -3,14 +3,13 @@ import asyncio
 from collections import defaultdict, deque
 from dataclasses import dataclass
 from typing import Dict, Deque, Optional, List, Tuple
-import time
 import pandas as pd
 
 from cryptofeed import FeedHandler
 from cryptofeed.defines import TICKER, TRADES
-from cryptofeed.exchanges import EXCHANGE_MAP  # maps name -> class
+from cryptofeed import exchanges as CFEX  # dynamic class lookup
 
-# -------- module-level hub registry (for scanner & dummy exchange)
+# -------- module-level hub registry
 _GLOBAL_HUB = None
 def register_global_hub(hub):
     global _GLOBAL_HUB
@@ -22,17 +21,35 @@ def get_global_hub():
 # -------- helpers
 
 def norm_to_slash(sym: str) -> str:
-    # "BTC-USDT" -> "BTC/USDT"
-    return sym.replace("-", "/")
+    return sym.replace("-", "/")  # "BTC-USDT" -> "BTC/USDT"
 
 def slash_to_norm(sym: str) -> str:
-    # "BTC/USDT" -> "BTC-USDT"
-    return sym.replace("/", "-")
+    return sym.replace("/", "-")  # "BTC/USDT" -> "BTC-USDT"
+
+# Robust resolver for exchange classes across cryptofeed versions
+_EX_CANDIDATES = {
+    "BINANCE":  ["Binance"],
+    "BITFINEX": ["Bitfinex"],
+    "BYBIT":    ["Bybit", "BYBIT"],
+    "OKX":      ["OKX", "Okx"],
+    "KUCOIN":   ["Kucoin", "KuCoin"],
+    "GATEIO":   ["Gateio", "GateIO"],
+    "KRAKEN":   ["Kraken"],
+}
+
+def _resolve_exchange_class(name: str):
+    upper = str(name).upper()
+    for cand in _EX_CANDIDATES.get(upper, []):
+        ex_cls = getattr(CFEX, cand, None)
+        if ex_cls is not None:
+            return ex_cls
+    print(f"[FEED] Unknown exchange in config (no class found): {name}")
+    return None
 
 @dataclass
 class TickerSnapshot:
     price: float
-    volume_24h: Optional[float]  # base volume when available
+    volume_24h: Optional[float]
     ts: float
 
 @dataclass
@@ -41,7 +58,6 @@ class TradePrint:
     size: float
     ts: float
 
-# Simple ATR-ish calc from synthetic 1m bars composed from trades
 class AtrEstimator:
     def __init__(self, minutes: int = 14):
         self.window = minutes
@@ -56,23 +72,15 @@ class AtrEstimator:
             self.curr_minute = minute
             self.ohlc = [price, price, price, price]
             return
-
         if minute != self.curr_minute:
-            # close out previous bar
             o, h, l, c = self.ohlc  # type: ignore
             prev_close = self.last_close if self.last_close is not None else o
-            tr = max(
-                h - l,
-                abs(h - prev_close),
-                abs(l - prev_close),
-            )
+            tr = max(h - l, abs(h - prev_close), abs(l - prev_close))
             self.tr_values.append(tr)
             self.last_close = c
-            # start new bar
             self.curr_minute = minute
             self.ohlc = [price, price, price, price]
         else:
-            # update bar
             o, h, l, _ = self.ohlc  # type: ignore
             h = max(h, price)
             l = min(l, price)
@@ -86,20 +94,11 @@ class AtrEstimator:
 
 class CryptoFeedHub:
     """
-    Runs Cryptofeed FeedHandler and maintains:
-      - latest ticker snapshot per symbol
-      - rolling trade prints and ATR estimator
-      - lightweight OHLCV aggregation from trades
-    cfg example:
-      {
-        "data_feeds": {
-          "exchanges": ["bybit","okx"],
-          "channels":  ["ticker","trades"],
-          "symbols":   ["BTC-USDT","ETH-USDT"]
-        }
-      }
+    Maintains:
+      - latest ticker per symbol
+      - rolling trades & ATR estimator
+      - simple OHLCV aggregation from trades (1m/5m/15m)
     """
-
     def __init__(self, cfg):
         self.cfg = cfg
         self._ticker: Dict[str, TickerSnapshot] = {}
@@ -112,7 +111,8 @@ class CryptoFeedHub:
     # ---------- callbacks
 
     async def _on_ticker(self, feed, pair, bid, ask, timestamp, receipt_timestamp, **kwargs):
-        # price proxy from mid if possible, else from last
+        # Normalize key to DASHED form so all lookups are consistent
+        key = slash_to_norm(pair)  # e.g., "XBT/USDT" -> "XBT-USDT"
         price = None
         if bid is not None and ask is not None:
             price = (bid + ask) / 2.0
@@ -120,8 +120,8 @@ class CryptoFeedHub:
             price = kwargs.get('last', None)
         if price is None:
             return
-        vol = kwargs.get('volume', None)  # base volume 24h when provided
-        self._ticker[pair] = TickerSnapshot(
+        vol = kwargs.get('volume', None)
+        self._ticker[key] = TickerSnapshot(
             price=float(price),
             volume_24h=(float(vol) if vol is not None else None),
             ts=float(timestamp),
@@ -132,52 +132,47 @@ class CryptoFeedHub:
         self._ready_evt.set()
 
     async def _on_trade(self, feed, pair, order_id, timestamp, side, amount, price, receipt_timestamp, **kwargs):
+        key = slash_to_norm(pair)  # store trades under the same dashed key
         tp = TradePrint(price=float(price), size=float(amount), ts=float(timestamp))
-        dq = self._trades[pair]
+        dq = self._trades[key]
         dq.append(tp)
-        self._atr[pair].on_trade(tp.ts, tp.price)
-        if pair not in self._ticker:
+        self._atr[key].on_trade(tp.ts, tp.price)
+        if key not in self._ticker:
             self._ready_evt.set()
 
-    # ---------- public API for scanner/strategy
+    # ---------- public API
 
     def list_symbols(self) -> List[str]:
+        # Report in slash form to user code
         syms = set(self._ticker.keys()) | set(self._trades.keys())
         return [norm_to_slash(s) for s in sorted(syms)]
 
     def snapshot(self, slash_symbol: str) -> Tuple[Optional[float], Optional[float]]:
-        sym = slash_to_norm(slash_symbol)
-        tick = self._ticker.get(sym)
+        key = slash_to_norm(slash_symbol)
+        tick = self._ticker.get(key)
         if not tick:
             return (None, None)
         return (tick.price, tick.volume_24h)
 
     def atr_pct(self, slash_symbol: str) -> Optional[float]:
-        sym = slash_to_norm(slash_symbol)
-        atr = self._atr[sym].atr
-        tick = self._ticker.get(sym)
+        key = slash_to_norm(slash_symbol)
+        atr = self._atr[key].atr
+        tick = self._ticker.get(key)
         price = tick.price if tick else None
         if atr is None or price is None or price == 0:
             return None
         return (atr / price) * 100.0
 
     def ohlcv_df(self, slash_symbol: str, timeframe: str = "5m", limit: int = 200) -> Optional[pd.DataFrame]:
-        """
-        Build simple OHLCV from trades in memory. Supports '1m','5m','15m'.
-        If there are not enough trades yet, returns an empty DataFrame.
-        """
-        sym = slash_to_norm(slash_symbol)
-        trades = list(self._trades.get(sym, []))
+        key = slash_to_norm(slash_symbol)
+        trades = list(self._trades.get(key, []))
         if not trades:
             return pd.DataFrame()
 
-        # choose bucket size
         tf_map = {"1m": 60, "5m": 300, "15m": 900}
         step = tf_map.get(timeframe, 300)
 
-        # build rows: [(bucket_ts_ms, o,h,l,c,v)]
-        # use Unix seconds from trades, convert to ms for ccxt-like schema
-        buckets: Dict[int, List[float]] = {}  # ts -> [o,h,l,c,v]
+        buckets: Dict[int, List[float]] = {}
         for t in trades:
             b = int(t.ts // step) * step
             if b not in buckets:
@@ -193,65 +188,91 @@ class CryptoFeedHub:
         if not buckets:
             return pd.DataFrame()
 
-        rows = []
-        for b in sorted(buckets.keys()):
-            o, h, l, c, v = buckets[b]
-            rows.append([b * 1000, o, h, l, c, v])
-
-        if not rows:
-            return pd.DataFrame()
-
+        rows = [[b * 1000, *buckets[b]] for b in sorted(buckets.keys())]
         df = pd.DataFrame(rows, columns=["time","open","high","low","close","volume"])
         if limit and len(df) > limit:
             df = df.iloc[-limit:].reset_index(drop=True)
         return df
 
     async def wait_ready(self, timeout: float = 10.0):
-        """Wait until at least one update (ticker or trade) has been received."""
         try:
             await asyncio.wait_for(self._ready_evt.wait(), timeout=timeout)
         except asyncio.TimeoutError:
             pass
 
     # ---------- runner
-
-    async def run(self):
+    def run(self):
         df = self.cfg.get("data_feeds", {})
         exchanges = df.get("exchanges", [])
-        channels = df.get("channels", [])
+        channels_cfg = df.get("channels", [])
         symbols = df.get("symbols", [])
 
-        # Build subscriptions per exchange using normalized symbols
-        subs: Dict[object, Dict[str, List[str]]] = {}
+        want_ticker = "ticker" in [c.lower() for c in channels_cfg]
+        want_trades = "trades" in [c.lower() for c in channels_cfg]
+        chan_list = []
+        if want_ticker: chan_list.append(TICKER)
+        if want_trades: chan_list.append(TRADES)
+        if not chan_list:
+            print("[FEED] No channels requested; nothing to run.")
+            return
 
+        subs: Dict[type, Dict[str, List[str]]] = {}
         for ex in exchanges:
-            ex_cls = EXCHANGE_MAP.get(str(ex).lower())
+            ex_cls = _resolve_exchange_class(ex)
             if not ex_cls:
                 continue
+            subs[ex_cls] = {ch: symbols for ch in chan_list}
+        if not subs:
+            print("[FEED] No valid subscriptions assembled; nothing to run.")
+            return
 
-            want_ticker = "ticker" in [c.lower() for c in channels]
-            want_trades = "trades" in [c.lower() for c in channels]
+        self._fh = FeedHandler()
+        for ex_cls, chans in subs.items():
+            cbs = {}
+            if TICKER in chans: cbs[TICKER] = self._on_ticker
+            if TRADES in chans: cbs[TRADES] = self._on_trade
+            try_syms = sorted({s for syms in chans.values() for s in syms})
+            print(f"[FEED] Adding {ex_cls.__name__} with channels={list(chans.keys())} symbols={try_syms}")
+            added = False
+            try:
+                self._fh.add_feed(ex_cls(subscribe=chans, callbacks=cbs))
+                added = True
+            except Exception as e:
+                print(f"[FEED] {ex_cls.__name__} subscribe= path failed: {e.__class__.__name__}: {e}")
+            if not added:
+                try:
+                    self._fh.add_feed(ex_cls(symbols=try_syms, channels=list(chans.keys()), callbacks=cbs))
+                    added = True
+                except Exception as e:
+                    print(f"[FEED] {ex_cls.__name__} symbols/channels path failed: {e.__class__.__name__}: {e}")
+            if added:
+                print(f"[FEED] Added {ex_cls.__name__}")
+            else:
+                print(f"[FEED] Skipping {ex_cls.__name__} due to startup errors.")
 
-            chans: Dict[str, List[str]] = {}
-            if want_ticker:
-                chans[TICKER] = symbols
-            if want_trades:
-                chans[TRADES] = symbols
-            if not chans:
-                continue
+        print("[FEED] Starting FeedHandler...")
 
-            self._fh = self._fh or FeedHandler()
-            self._fh.add_feed(
-                ex_cls(
-                    channels=chans,
-                    callbacks={
-                        **({TICKER: self._on_ticker} if TICKER in chans else {}),
-                        **({TRADES: self._on_trade} if TRADES in chans else {}),
-                    }
-                )
-            )
-
-        if not self._fh:
-            return  # nothing to run
-
-        await self._fh.run(start_loop=False)
+        # Create and own an event loop in main thread
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            self._fh.run(start_loop=False)
+            loop.run_forever()
+        except KeyboardInterrupt:
+            print("\n[FEED] Ctrl+C received. Shutting down feed...")
+        except Exception as e:
+            print("[FEED] FeedHandler exited with error:", e)
+        finally:
+            try:
+                for task in asyncio.all_tasks(loop):
+                    task.cancel()
+            except Exception:
+                pass
+            try:
+                loop.stop()
+            except Exception:
+                pass
+            try:
+                loop.close()
+            except Exception:
+                pass
