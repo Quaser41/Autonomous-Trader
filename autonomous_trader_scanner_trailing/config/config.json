@@ -3,10 +3,9 @@
   "timeframe_crypto": "5m",
 
   "data_feeds": {
-    "exchanges": ["KRAKEN", "BITFINEX", "OKX", "KUCOIN", "BYBIT", "GATEIO"],
+    "exchanges": ["KRAKEN"],
     "channels": ["ticker", "trades"],
-    "symbols": ["BTC-USDT", "ETH-USDT", "SOL-USDT", "BNB-USDT", "ADA-USDT"],
-    "normalize_symbols": true
+    "symbols": ["XBT/USDT", "ETH/USDT", "SOL/USDT", "ADA/USDT"]
   },
 
   "scanner": {
