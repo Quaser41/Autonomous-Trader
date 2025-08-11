@@ -13,7 +13,8 @@
     "refresh_minutes": 90,
     "min_24h_usdt_volume": 10000000,
     "min_atr_pct": 0.8,
-    "max_symbols": 20
+    "max_symbols": 20,
+    "max_trending_symbols": 10
   },
 
   "risk": {
