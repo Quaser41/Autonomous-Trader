@@ -29,12 +29,15 @@ class PaperBroker:
 
     # ---------- persistence ----------
     def _load_balance(self) -> float:
+        risk_cfg = CFG.get("risk", {})
+        reset = risk_cfg.get("reset_balance", False) or CFG.get("reset_balance", False)
         try:
-            if os.path.exists(BAL_PATH):
+            if os.path.exists(BAL_PATH) and not reset:
                 return float(open(BAL_PATH, "r").read().strip())
         except Exception:
             pass
         return RISK_CFG.get("dry_run_wallet", 1000.0)
+
 
     def _load_positions(self) -> Dict[str, Any]:
         try:
