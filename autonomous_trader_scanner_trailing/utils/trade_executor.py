@@ -1,10 +1,23 @@
 
-import os, json, time
+import os, json, time, logging
 from typing import Dict, Any
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 CFG = json.load(open(os.path.join(BASE_DIR, "config", "config.json"), "r"))
 RISK_CFG = CFG.get("risk", {})
+
+LOG_DIR = os.path.join(BASE_DIR, "data", "logs")
+os.makedirs(LOG_DIR, exist_ok=True)
+logger = logging.getLogger(__name__)
+if not logger.handlers:
+    fmt = logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    sh = logging.StreamHandler()
+    sh.setFormatter(fmt)
+    fh = logging.FileHandler(os.path.join(LOG_DIR, "trades.log"))
+    fh.setFormatter(fmt)
+    logger.addHandler(sh)
+    logger.addHandler(fh)
+logger.setLevel(logging.INFO)
 
 BAL_PATH = os.path.join(BASE_DIR, "data", "performance", "balance.txt")
 POS_PATH = os.path.join(BASE_DIR, "data", "performance", "positions.json")
@@ -105,6 +118,7 @@ class PaperBroker:
             "meta": meta
         }
         self._persist_balance(); self._persist_positions()
+        logger.info("BUY %s @ %.4f | balance %.2f", symbol, price, self.balance)
         return {"symbol": symbol, "qty": qty, "price": price}
 
     def update_trailing(self, symbol: str, price: float):
@@ -146,4 +160,5 @@ class PaperBroker:
         del self.positions[symbol]
         self.cooldowns[symbol] = self._now()
         self._persist_balance(); self._persist_positions(); self._persist_cooldowns()
+        logger.info("SELL %s @ %.4f | pnl %.2f | balance %.2f", symbol, price, pnl, self.balance)
         return {"symbol": symbol, "price": price, "pnl": pnl, "balance": self.balance}
