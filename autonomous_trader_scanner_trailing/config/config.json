@@ -1,6 +1,7 @@
 {
   "exchange": "cryptofeed",
   "timeframe_crypto": "5m",
+  "enable_rest_history": false,
 
   "data_feeds": {
     "exchanges": ["KRAKEN"],

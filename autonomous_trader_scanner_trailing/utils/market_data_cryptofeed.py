@@ -8,6 +8,7 @@ import pandas as pd
 from cryptofeed import FeedHandler
 from cryptofeed.defines import TICKER, TRADES
 from cryptofeed import exchanges as CFEX  # dynamic class lookup
+from utils.exchange_utils import fetch_history
 
 # -------- module-level hub registry
 _GLOBAL_HUB = None
@@ -166,8 +167,6 @@ class CryptoFeedHub:
     def ohlcv_df(self, slash_symbol: str, timeframe: str = "5m", limit: int = 200) -> Optional[pd.DataFrame]:
         key = slash_to_norm(slash_symbol)
         trades = list(self._trades.get(key, []))
-        if not trades:
-            return pd.DataFrame()
 
         tf_map = {"1m": 60, "5m": 300, "15m": 900}
         step = tf_map.get(timeframe, 300)
@@ -185,13 +184,20 @@ class CryptoFeedHub:
                 v = v + t.size
                 buckets[b] = [o, h, l, c, v]
 
-        if not buckets:
-            return pd.DataFrame()
-
         rows = [[b * 1000, *buckets[b]] for b in sorted(buckets.keys())]
         df = pd.DataFrame(rows, columns=["time","open","high","low","close","volume"])
         if limit and len(df) > limit:
             df = df.iloc[-limit:].reset_index(drop=True)
+
+        # Backfill with REST data when available and needed
+        if self.cfg.get("enable_rest_history", False) and (not limit or len(df) < limit):
+            hist = fetch_history(slash_symbol, timeframe=timeframe, limit=limit)
+            if hist:
+                hist_df = pd.DataFrame(hist, columns=["time","open","high","low","close","volume"])
+                df = pd.concat([hist_df, df]).drop_duplicates(subset="time", keep="last").sort_values("time")
+                if limit and len(df) > limit:
+                    df = df.iloc[-limit:].reset_index(drop=True)
+
         return df
 
     async def wait_ready(self, timeout: float = 10.0):

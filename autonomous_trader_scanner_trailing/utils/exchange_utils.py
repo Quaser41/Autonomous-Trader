@@ -64,3 +64,28 @@ def filter_supported_symbols(exchange, symbols):
         if s in markets and markets[s].get("spot", False):
             ok.append(s)
     return ok
+
+
+def fetch_history(symbol, timeframe="5m", limit=200):
+    """Fetch historical OHLCV data via ccxt REST.
+
+    Returns a list of ``[timestamp, open, high, low, close, volume]`` rows.
+    Respects ``CFG['enable_rest_history']``; when disabled, returns an
+    empty list so production can remain WebSocket-only.
+    """
+    if not CFG.get("enable_rest_history", False):
+        return []
+
+    try:
+        ccxt = _get_ccxt()
+        df_cfg = CFG.get("data_feeds", {}) or {}
+        exchanges = df_cfg.get("exchanges") or []
+        # Fall back to top-level exchange (or binance) if not provided
+        ex_name = exchanges[0] if exchanges else (CFG.get("exchange") or "binance")
+        ex_class = getattr(ccxt, ex_name.lower(), None)
+        if ex_class is None:
+            return []
+        ex = ex_class({"enableRateLimit": CFG.get("rate_limit", True)})
+        return ex.fetch_ohlcv(symbol, timeframe=timeframe, limit=limit)
+    except Exception:
+        return []
