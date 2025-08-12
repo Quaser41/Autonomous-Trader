@@ -13,6 +13,8 @@ def _patch_paths(tmp_path, monkeypatch):
     monkeypatch.setattr(trade_executor, "BAL_PATH", tmp_path / "balance.txt")
     monkeypatch.setattr(trade_executor, "POS_PATH", tmp_path / "positions.json")
     monkeypatch.setattr(trade_executor, "CD_PATH", tmp_path / "cooldowns.json")
+    monkeypatch.setattr(trade_executor, "PPL_PATH", tmp_path / "pnl.json")
+    monkeypatch.setattr(trade_executor, "TC_PATH", tmp_path / "tc.json")
 
 
 def _setup_risk(monkeypatch):

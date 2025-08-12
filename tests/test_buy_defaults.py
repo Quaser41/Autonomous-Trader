@@ -16,6 +16,8 @@ def test_buy_defaults_from_cfg(tmp_path, monkeypatch):
     monkeypatch.setattr(trade_executor_main, "BAL_PATH", tmp_path / "balance.txt")
     monkeypatch.setattr(trade_executor_main, "POS_PATH", tmp_path / "positions.json")
     monkeypatch.setattr(trade_executor_main, "CD_PATH", tmp_path / "cooldowns.json")
+    monkeypatch.setattr(trade_executor_main, "PPL_PATH", tmp_path / "pnl.json")
+    monkeypatch.setattr(trade_executor_main, "TC_PATH", tmp_path / "tc.json")
 
     # deterministic risk parameters
     monkeypatch.setitem(trade_executor_main.RISK_CFG, "tradable_balance_ratio", 1.0)
