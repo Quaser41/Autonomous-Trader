@@ -42,6 +42,7 @@ def generate_signal(df: pd.DataFrame, cfg) -> dict:
     df["rsi"]    = rsi(df["close"], 14)
     df["atr"]    = atr(df, 14)
     df["atr_pct"] = (df["atr"] / df["close"]).fillna(0.0)
+    df["vol_ma"] = df["volume"].rolling(20).mean()
 
     macd_line, signal_line, hist = macd(df["close"], 12, 26, 9)
     df["macd_hist"] = hist
@@ -64,9 +65,12 @@ def generate_signal(df: pd.DataFrame, cfg) -> dict:
     # trend filter: ema50 > ema200 and both rising
     trend_up = (last["ema50"] > last["ema200"]) and (last["ema50"] > prev["ema50"]) and (last["ema200"] >= prev["ema200"])
 
-    # momentum confirm: MACD hist flips > 0 and RSI healthy (50–70)
+    # momentum/volume confirm
     macd_flip_up = (prev["macd_hist"] <= 0) and (last["macd_hist"] > 0)
     rsi_ok = 50 <= last["rsi"] <= 70
+    vol_ok = pd.notna(last["vol_ma"]) and last["volume"] > last["vol_ma"] * 1.2
+    if not vol_ok:
+        return {"signal": "HOLD", "score": 0.0}
 
     # breakout: close above recent 20-bar high with tiny buffer
     breakout = (last["close"] > float(last["hh"]) * 1.001) if pd.notna(last["hh"]) else False
@@ -77,6 +81,7 @@ def generate_signal(df: pd.DataFrame, cfg) -> dict:
     if macd_flip_up:    score += 0.5
     if rsi_ok:          score += 0.2
     if breakout:        score += 0.4
+    if vol_ok:         score += 0.2
 
     # soften if price is far above ema20 (reduce buying extended moves)
     stretch = (last["close"] - last["ema20"]) / last["close"]
@@ -86,6 +91,12 @@ def generate_signal(df: pd.DataFrame, cfg) -> dict:
     score = float(max(0.0, min(1.5, score)))
 
     if trend_up and (macd_flip_up or breakout) and score >= 0.9:
-        return {"signal": "BUY", "score": score}
+        atr_pct = float(last["atr_pct"])
+        risk_cfg = cfg.get("risk", {})
+        atr_mult = risk_cfg.get("atr_stop_multiplier", 1.5)
+        rr_ratio = risk_cfg.get("rr_ratio", 2.0)
+        sl_pct = max(0.001, min(0.05, atr_pct * atr_mult))
+        tp_pct = sl_pct * rr_ratio
+        return {"signal": "BUY", "score": score, "sl_pct": sl_pct, "tp_pct": tp_pct}
 
     return {"signal": "HOLD", "score": score}

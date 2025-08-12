@@ -46,9 +46,11 @@ def _scan_symbols(broker: PaperBroker, symbols: List[str]):
         sig = ai_combo_strategy.generate_signal(df, CFG)
         if sig.get("signal") == "BUY":
             price = float(df["close"].iloc[-1])
+            sl_pct = sig.get("sl_pct", exits_cfg.get("stop_loss_pct", 0.01))
+            tp_pct = sig.get("tp_pct", exits_cfg.get("take_profit_pct", 0.02))
             meta = {
-                "stop_loss_pct": exits_cfg.get("stop_loss_pct", 0.01),
-                "take_profit_pct": exits_cfg.get("take_profit_pct", 0.02),
+                "stop_loss_pct": sl_pct,
+                "take_profit_pct": tp_pct,
                 "breakeven_trigger_pct": trail_cfg.get("breakeven_pct", 0.005),
                 "trailing_stop_pct": trail_cfg.get("trail_pct", 0.006),
                 "score": sig.get("score"),

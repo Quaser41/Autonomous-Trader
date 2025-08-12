@@ -3,7 +3,7 @@ from pathlib import Path
 import pytest
 
 # dynamically load trade_executor module without package structure
-MODULE_PATH = Path(__file__).resolve().parents[1] / "autonomous_trader_scanner_trailing" / "utils" / "trade_executor.py"
+MODULE_PATH = Path(__file__).resolve().parents[1] / "autonomous_trader" / "utils" / "trade_executor.py"
 spec = importlib.util.spec_from_file_location("trade_executor", MODULE_PATH)
 trade_executor = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(trade_executor)
@@ -14,6 +14,8 @@ def test_trade_flow(tmp_path, monkeypatch):
     monkeypatch.setattr(trade_executor, "BAL_PATH", tmp_path / "balance.txt")
     monkeypatch.setattr(trade_executor, "POS_PATH", tmp_path / "positions.json")
     monkeypatch.setattr(trade_executor, "CD_PATH", tmp_path / "cooldowns.json")
+    monkeypatch.setattr(trade_executor, "PPL_PATH", tmp_path / "pnl.json")
+    monkeypatch.setattr(trade_executor, "TC_PATH", tmp_path / "tc.json")
 
     # ensure deterministic risk configuration
     monkeypatch.setitem(trade_executor.RISK_CFG, "tradable_balance_ratio", 1.0)
