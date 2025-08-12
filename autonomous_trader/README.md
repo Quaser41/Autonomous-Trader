@@ -2,7 +2,8 @@
 
 ## Resetting Paper Trading Balance
 
-To start a fresh paper-trading session:
+By default, the bot preserves your paper-trading balance across runs
+(`risk.reset_balance` is `false`). To start a fresh session:
 
 1. Delete the stored balance file:
    ```bash
