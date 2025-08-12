@@ -1,0 +1,42 @@
+{
+  "exchange": "kraken",
+  "market_data": "kraken_ws",
+  "timeframe_crypto": "5m",
+
+  "data_feeds": {
+    "channels": ["ticker", "trades"],
+    "symbols": ["XBT/USDT", "ETH/USDT", "SOL/USDT", "ADA/USDT"]
+  },
+
+  "scanner": {
+    "enable": true,
+    "refresh_minutes": 90,
+    "min_24h_usdt_volume": 10000000,
+    "min_atr_pct": 0.8,
+    "max_symbols": 20
+  },
+
+  "risk": {
+    "dry_run_wallet": 1000.0,
+    "tradable_balance_ratio": 0.75,
+    "stake_per_trade_ratio": 0.2,
+    "max_open_trades": 3
+  },
+
+  "exits": {
+    "take_profit_pct": 0.02,
+    "stop_loss_pct": 0.01
+  },
+
+  "trailing_stop": {
+    "enable": true,
+    "activate_profit_pct": 0.004,
+    "breakeven_pct": 0.005,
+    "trail_pct": 0.006
+  },
+
+  "logging": {
+    "print_status_every_sec": 30,
+    "log_status_every_sec": 30
+  }
+}

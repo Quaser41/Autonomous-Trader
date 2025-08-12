@@ -1,0 +1,212 @@
+2025-08-10 20:15:37,397 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 20:21:35,148 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 20:21:35,208 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 20:28:51,666 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 20:28:51,704 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 20:32:40,118 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 20:32:40,158 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 22:26:02,105 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 22:26:02,165 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 22:35:51,877 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 22:35:51,936 : ERROR : BYBIT: Failed to parse symbol information: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchange.py", line 100, in symbol_mapping
+    data.append(cls.http_sync.read(ep, json=True, headers=headers, uuid=cls.id))
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 57, in read
+    return self.process_response(r, address, json=json, text=text, uuid=uuid)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection.py", line 47, in process_response
+    r.raise_for_status()
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\requests\models.py", line 1026, in raise_for_status
+    raise HTTPError(http_error_msg, response=self)
+requests.exceptions.HTTPError: 403 Client Error: Forbidden for url: https://api.bybit.com/v5/market/instruments-info?&category=linear&status=Trading&limit=1000
+2025-08-10 23:29:55,546 : ERROR : OKX.ws.1: encountered an exception, reconnecting in 1.0 seconds
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 65, in _create_connection
+    await self._handler(connection, self.handler)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 99, in _handler
+    await handler(message, connection, self.conn.last_message)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 424, in message_handler
+    await self._ticker(msg, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 197, in _ticker
+    await self.callback(TICKER, t, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\feed.py", line 258, in callback
+    await cb(obj, receipt_timestamp)
+TypeError: on_ticker() missing 4 required positional arguments: 'bid', 'ask', 'ts', and 'receipt'
+2025-08-10 23:29:57,969 : ERROR : OKX.ws.1: encountered an exception, reconnecting in 1.0 seconds
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 65, in _create_connection
+    await self._handler(connection, self.handler)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 99, in _handler
+    await handler(message, connection, self.conn.last_message)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 424, in message_handler
+    await self._ticker(msg, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 197, in _ticker
+    await self.callback(TICKER, t, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\feed.py", line 258, in callback
+    await cb(obj, receipt_timestamp)
+TypeError: on_ticker() missing 4 required positional arguments: 'bid', 'ask', 'ts', and 'receipt'
+2025-08-10 23:30:00,345 : ERROR : OKX.ws.1: encountered an exception, reconnecting in 1.0 seconds
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 65, in _create_connection
+    await self._handler(connection, self.handler)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 99, in _handler
+    await handler(message, connection, self.conn.last_message)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 424, in message_handler
+    await self._ticker(msg, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 197, in _ticker
+    await self.callback(TICKER, t, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\feed.py", line 258, in callback
+    await cb(obj, receipt_timestamp)
+TypeError: on_ticker() missing 4 required positional arguments: 'bid', 'ask', 'ts', and 'receipt'
+2025-08-10 23:30:02,547 : ERROR : OKX.ws.1: encountered an exception, reconnecting in 1.0 seconds
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 65, in _create_connection
+    await self._handler(connection, self.handler)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 99, in _handler
+    await handler(message, connection, self.conn.last_message)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 424, in message_handler
+    await self._ticker(msg, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 197, in _ticker
+    await self.callback(TICKER, t, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\feed.py", line 258, in callback
+    await cb(obj, receipt_timestamp)
+TypeError: on_ticker() missing 4 required positional arguments: 'bid', 'ask', 'ts', and 'receipt'
+2025-08-10 23:30:05,019 : ERROR : OKX.ws.1: encountered an exception, reconnecting in 1.0 seconds
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 65, in _create_connection
+    await self._handler(connection, self.handler)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 99, in _handler
+    await handler(message, connection, self.conn.last_message)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 424, in message_handler
+    await self._ticker(msg, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 197, in _ticker
+    await self.callback(TICKER, t, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\feed.py", line 258, in callback
+    await cb(obj, receipt_timestamp)
+TypeError: on_ticker() missing 4 required positional arguments: 'bid', 'ask', 'ts', and 'receipt'
+2025-08-10 23:30:07,202 : ERROR : OKX.ws.1: encountered an exception, reconnecting in 1.0 seconds
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 65, in _create_connection
+    await self._handler(connection, self.handler)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 99, in _handler
+    await handler(message, connection, self.conn.last_message)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 424, in message_handler
+    await self._ticker(msg, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 197, in _ticker
+    await self.callback(TICKER, t, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\feed.py", line 258, in callback
+    await cb(obj, receipt_timestamp)
+TypeError: on_ticker() missing 4 required positional arguments: 'bid', 'ask', 'ts', and 'receipt'
+2025-08-10 23:30:09,837 : ERROR : OKX.ws.1: encountered an exception, reconnecting in 1.0 seconds
+Traceback (most recent call last):
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 65, in _create_connection
+    await self._handler(connection, self.handler)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\connection_handler.py", line 99, in _handler
+    await handler(message, connection, self.conn.last_message)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 424, in message_handler
+    await self._ticker(msg, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\exchanges\okx.py", line 197, in _ticker
+    await self.callback(TICKER, t, timestamp)
+  File "C:\Users\Brian\Downloads\Alpaca\autonomous_trader_scanner_trailing\.venv\lib\site-packages\cryptofeed\feed.py", line 258, in callback
+    await cb(obj, receipt_timestamp)
+TypeError: on_ticker() missing 4 required positional arguments: 'bid', 'ask', 'ts', and 'receipt'
