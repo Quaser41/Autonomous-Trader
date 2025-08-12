@@ -136,6 +136,8 @@ def trading_loop():
     broker = PaperBroker()
     exit_cfg = get_exit_cfg()
 
+    debug_verbose = CFG.get("debug", {}).get("verbose")
+
     # initial whitelist
     try:
         wl = filter_supported_symbols(EXCHANGE, load_crypto_whitelist())
@@ -228,7 +230,8 @@ def trading_loop():
                 if sig.get("signal") == "HOLD" and test_momo > 0 and len(df) >= 4:
                     c = df["close"]
                     momo = (float(c.iloc[-1]) / float(c.iloc[-4])) - 1.0  # ~3 bars lookback
-                    print(f"[TEST] {sym} momentum={momo:.3%} (threshold={test_momo:.3%})")  # <-- add this line
+                    if debug_verbose:
+                        print(f"[TEST] {sym} momentum={momo:.3%} (threshold={test_momo:.3%})")
 
                     if momo >= test_momo:
                         sig = {"signal": "BUY", "score": momo}
@@ -236,7 +239,8 @@ def trading_loop():
                         sig = {"signal": "HOLD", "score": momo}
                 # --- END TEMP
 
-                print(f"[SIG] {sym} -> {sig}")  # <--- add this single line
+                if debug_verbose:
+                    print(f"[SIG] {sym} -> {sig}")
                 if sig.get("signal") == "BUY":
                     o = broker.buy(sym, price, {
                         "score": sig.get("score"),
