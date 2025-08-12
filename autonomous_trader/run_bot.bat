@@ -1,5 +1,6 @@
 @echo off
 setlocal EnableExtensions EnableDelayedExpansion
+title Auto-Trader
 
 :: Jump to this script’s directory
 cd /d "%~dp0"
