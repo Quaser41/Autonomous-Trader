@@ -4,6 +4,7 @@ from typing import Dict, Any
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 CFG = json.load(open(os.path.join(BASE_DIR, "config", "config.json"), "r"))
+RISK_CFG = CFG.get("risk", {})
 
 BAL_PATH = os.path.join(BASE_DIR, "data", "performance", "balance.txt")
 POS_PATH = os.path.join(BASE_DIR, "data", "performance", "positions.json")
@@ -18,21 +19,24 @@ class PaperBroker:
         self.positions = self._load_positions()
         self.cooldowns = self._load_cooldowns()
 
-        self.max_open = CFG.get("max_open_trades", 3)
-        self.tradable_ratio = CFG.get("tradable_balance_ratio", 0.75)
-        self.stake_ratio = CFG.get("stake_per_trade_ratio", 0.2)
-        self.cooldown_minutes = CFG.get("cooldown_minutes", 30)
+        risk_cfg = RISK_CFG
+        self.max_open = risk_cfg.get("max_open_trades", 3)
+        self.tradable_ratio = risk_cfg.get("tradable_balance_ratio", 0.75)
+        self.stake_ratio = risk_cfg.get("stake_per_trade_ratio", 0.2)
+        self.cooldown_minutes = risk_cfg.get("cooldown_minutes", 30)
 
         self._persist_balance(); self._persist_positions(); self._persist_cooldowns()
 
     # ---------- persistence ----------
     def _load_balance(self) -> float:
+        risk_cfg = CFG.get("risk", {})
+        reset = risk_cfg.get("reset_balance", False) or CFG.get("reset_balance", False)
         try:
-            if os.path.exists(BAL_PATH):
+            if os.path.exists(BAL_PATH) and not reset:
                 return float(open(BAL_PATH, "r").read().strip())
         except Exception:
             pass
-        return CFG.get("dry_run_wallet", 1000.0)
+        return RISK_CFG.get("dry_run_wallet", 1000.0)
 
     def _load_positions(self) -> Dict[str, Any]:
         try:
@@ -87,16 +91,16 @@ class PaperBroker:
         qty = max(0.00000001, stake / max(price, 1e-9))
         self.balance -= stake
         # initial stops
-        sl_pct = meta.get("stop_loss_pct", CFG.get("stop_loss_pct", 0.006))
-        tp_pct = meta.get("take_profit_pct", CFG.get("take_profit_pct", 0.006))
+        sl_pct = meta.get("stop_loss_pct", RISK_CFG.get("stop_loss_pct", 0.006))
+        tp_pct = meta.get("take_profit_pct", RISK_CFG.get("take_profit_pct", 0.006))
         self.positions[symbol] = {
             "qty": qty,
             "entry": price,
             "peak": price,
             "stop": price * (1 - sl_pct),
             "tp_price": price * (1 + tp_pct),
-            "breakeven_trigger_pct": meta.get("breakeven_trigger_pct", CFG.get("breakeven_trigger_pct", 0.003)),
-            "trailing_stop_pct": meta.get("trailing_stop_pct", CFG.get("trailing_stop_pct", 0.004)),
+            "breakeven_trigger_pct": meta.get("breakeven_trigger_pct", RISK_CFG.get("breakeven_trigger_pct", 0.003)),
+            "trailing_stop_pct": meta.get("trailing_stop_pct", RISK_CFG.get("trailing_stop_pct", 0.004)),
             "meta": meta
         }
         self._persist_balance(); self._persist_positions()
