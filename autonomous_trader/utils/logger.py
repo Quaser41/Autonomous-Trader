@@ -1,5 +1,5 @@
 
-import os, sys, json, datetime as dt
+import os, json, datetime as dt
 
 BASE = os.path.dirname(os.path.dirname(__file__))
 LOG_DIR = os.path.join(BASE, "data", "logs")
