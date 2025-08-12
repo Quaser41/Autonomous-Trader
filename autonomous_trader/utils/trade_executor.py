@@ -91,16 +91,18 @@ class PaperBroker:
         qty = max(0.00000001, stake / max(price, 1e-9))
         self.balance -= stake
         # initial stops
-        sl_pct = meta.get("stop_loss_pct", RISK_CFG.get("stop_loss_pct", 0.006))
-        tp_pct = meta.get("take_profit_pct", RISK_CFG.get("take_profit_pct", 0.006))
+        exits_cfg = CFG.get("exits", {})
+        trailing_cfg = CFG.get("trailing_stop", {})
+        sl_pct = meta.get("stop_loss_pct", exits_cfg.get("stop_loss_pct", 0.006))
+        tp_pct = meta.get("take_profit_pct", exits_cfg.get("take_profit_pct", 0.006))
         self.positions[symbol] = {
             "qty": qty,
             "entry": price,
             "peak": price,
             "stop": price * (1 - sl_pct),
             "tp_price": price * (1 + tp_pct),
-            "breakeven_trigger_pct": meta.get("breakeven_trigger_pct", RISK_CFG.get("breakeven_trigger_pct", 0.003)),
-            "trailing_stop_pct": meta.get("trailing_stop_pct", RISK_CFG.get("trailing_stop_pct", 0.004)),
+            "breakeven_trigger_pct": meta.get("breakeven_trigger_pct", trailing_cfg.get("breakeven_pct", 0.003)),
+            "trailing_stop_pct": meta.get("trailing_stop_pct", trailing_cfg.get("trail_pct", 0.004)),
             "meta": meta
         }
         self._persist_balance(); self._persist_positions()
@@ -113,11 +115,13 @@ class PaperBroker:
         entry = pos["entry"]
         pos["peak"] = max(pos.get("peak", entry), price)
         # breakeven if in profit enough
-        trigger = entry * (1 + pos.get("breakeven_trigger_pct", 0.003))
+        trailing_cfg = CFG.get("trailing_stop", {})
+        trigger_pct = pos.get("breakeven_trigger_pct", trailing_cfg.get("breakeven_pct", 0.003))
+        trigger = entry * (1 + trigger_pct)
         if price >= trigger:
             pos["stop"] = max(pos["stop"], entry)  # move to breakeven
             # trail from peak
-            t_pct = pos.get("trailing_stop_pct", 0.004)
+            t_pct = pos.get("trailing_stop_pct", trailing_cfg.get("trail_pct", 0.004))
             trail_stop = pos["peak"] * (1 - t_pct)
             if trail_stop > pos["stop"]:
                 pos["stop"] = trail_stop
