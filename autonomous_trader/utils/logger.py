@@ -5,7 +5,9 @@ BASE = os.path.dirname(os.path.dirname(__file__))
 LOG_DIR = os.path.join(BASE, "data", "logs")
 os.makedirs(LOG_DIR, exist_ok=True)
 
-CFG = json.load(open(os.path.join(BASE, "config", "config.json"), "r"))
+CFG_PATH = os.path.join(BASE, "config", "config.json")
+with open(CFG_PATH, "r", encoding="utf-8") as f:
+    CFG = json.load(f)
 
 class Notifier:
     def __init__(self, cfg):

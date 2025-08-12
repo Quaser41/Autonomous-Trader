@@ -1,7 +1,9 @@
 # utils/exchange_utils.py
 import os, json
 BASE = os.path.dirname(os.path.dirname(__file__))
-CFG = json.load(open(os.path.join(BASE, "config", "config.json"), "r"))
+CFG_PATH = os.path.join(BASE, "config", "config.json")
+with open(CFG_PATH, "r", encoding="utf-8") as f:
+    CFG = json.load(f)
 
 # Lazy ccxt import only if needed
 _ccxt = None

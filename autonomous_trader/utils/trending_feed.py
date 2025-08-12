@@ -33,7 +33,8 @@ def save_whitelist(symbols: List[str]) -> None:
 
 def _load_cfg():
     try:
-        return json.load(open(CFG_PATH, "r", encoding="utf-8"))
+        with open(CFG_PATH, "r", encoding="utf-8") as f:
+            return json.load(f)
     except Exception:
         return {}
 

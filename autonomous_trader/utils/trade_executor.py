@@ -3,7 +3,9 @@ import os, json, time
 from typing import Dict, Any
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
-CFG = json.load(open(os.path.join(BASE_DIR, "config", "config.json"), "r"))
+CFG_PATH = os.path.join(BASE_DIR, "config", "config.json")
+with open(CFG_PATH, "r", encoding="utf-8") as f:
+    CFG = json.load(f)
 RISK_CFG = CFG.get("risk", {})
 
 BAL_PATH = os.path.join(BASE_DIR, "data", "performance", "balance.txt")
@@ -46,7 +48,8 @@ class PaperBroker:
     def _load_positions(self) -> Dict[str, Any]:
         try:
             if os.path.exists(POS_PATH):
-                return json.load(open(POS_PATH, "r"))
+                with open(POS_PATH, "r", encoding="utf-8") as f:
+                    return json.load(f)
         except Exception:
             pass
         return {}
@@ -54,7 +57,8 @@ class PaperBroker:
     def _load_cooldowns(self) -> Dict[str, float]:
         try:
             if os.path.exists(CD_PATH):
-                return json.load(open(CD_PATH, "r"))
+                with open(CD_PATH, "r", encoding="utf-8") as f:
+                    return json.load(f)
         except Exception:
             pass
         return {}
@@ -62,7 +66,8 @@ class PaperBroker:
     def _load_symbol_pnl(self) -> Dict[str, float]:
         try:
             if os.path.exists(PPL_PATH):
-                return json.load(open(PPL_PATH, "r"))
+                with open(PPL_PATH, "r", encoding="utf-8") as f:
+                    return json.load(f)
         except Exception:
             pass
         return {}
@@ -71,7 +76,8 @@ class PaperBroker:
         today = time.strftime("%Y-%m-%d", time.gmtime())
         try:
             if os.path.exists(TC_PATH):
-                data = json.load(open(TC_PATH, "r"))
+                with open(TC_PATH, "r", encoding="utf-8") as f:
+                    data = json.load(f)
                 return data.get("count", 0), data.get("day", today)
         except Exception:
             pass
