@@ -51,3 +51,24 @@ positions lock in profit:
 
 When active, the bot trails the stop using `ATR * atr_trail_multiplier` from
 the position peak.
+
+## Updating the Trending Whitelist
+
+The bot can trade a dynamic universe of symbols derived from trending sources
+(CoinMarketCap, DEXTools and Reddit). To refresh this list outside the bot
+runtime, run:
+
+```bash
+python tools/update_trending_whitelist.py
+```
+
+This writes the combined symbols to `data/runtime/runtime_whitelist.json`,
+which `load_crypto_whitelist()` automatically reads on the next cycle. For
+continuous updates, schedule the script via cron, for example:
+
+```
+*/15 * * * * /usr/bin/python /path/to/tools/update_trending_whitelist.py
+```
+
+The main bot (`main.py` or `bot_runner.py`) already starts a background thread
+that performs the same refresh every few minutes when it is running.

@@ -3,6 +3,7 @@ import os, json
 
 BASE = os.path.dirname(os.path.dirname(__file__))
 PERF_PATH = os.path.join(BASE, "data", "performance", "symbol_pnl.json")
+RUNTIME_PATH = os.path.join(BASE, "data", "runtime", "runtime_whitelist.json")
 BLACKLIST = {"ZRO/USD", "STG/USD", "PUMP/USD", "LTC/USDT"}
 
 # Load configuration once at module import to avoid re-reading the file
@@ -17,10 +18,9 @@ except Exception:
 def load_crypto_whitelist():
     wl = _CONFIG.get("whitelist", [])
     # overlay with runtime list if exists
-    rt = os.path.join(BASE, "data", "runtime", "runtime_whitelist.json")
-    if os.path.exists(rt):
+    if os.path.exists(RUNTIME_PATH):
         try:
-            rw = json.load(open(rt, "r"))
+            rw = json.load(open(RUNTIME_PATH, "r"))
             if isinstance(rw, list) and rw:
                 wl = rw
         except Exception:
@@ -41,6 +41,5 @@ def load_crypto_whitelist():
     return wl
 
 def save_runtime_whitelist(symbols):
-    path = os.path.join(BASE, "data", "runtime", "runtime_whitelist.json")
-    with open(path, "w", encoding="utf-8") as f:
+    with open(RUNTIME_PATH, "w", encoding="utf-8") as f:
         json.dump(symbols, f, indent=2)
