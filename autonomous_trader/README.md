@@ -1,5 +1,8 @@
 # Autonomous Trader
 
+This project focuses solely on cryptocurrency markets. Legacy stock trading
+features and the Alpaca integration have been removed.
+
 ## Resetting Paper Trading Balance
 
 By default, the bot preserves your paper-trading balance across runs
