@@ -3,3 +3,4 @@ pandas>=2.0.0
 numpy>=1.23.0
 python-telegram-bot>=13.15
 cryptofeed>=2.3.0
+alpaca-trade-api>=3.0.0
