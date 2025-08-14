@@ -1,0 +1,9 @@
+# Ignore data outputs except logs
+autonomous_trader/data/*
+!autonomous_trader/data/logs/
+!autonomous_trader/data/logs/**
+
+# Python cache and local env files
+__pycache__/
+*.py[cod]
+
