@@ -25,6 +25,8 @@
     "daily_loss_limit": 50
   },
 
+  "symbol_loss_limit": -3.0,
+
   "exits": {
     "take_profit_pct": 0.02,
     "stop_loss_pct": 0.008
