@@ -128,6 +128,7 @@ def get_exit_cfg():
         "trailing_stop_pct": trailing.get("trail_pct"),
         "trailing_enable": trailing.get("enable", True),
         "activate_profit_pct": trailing.get("activate_profit_pct"),
+        "atr_trail_multiplier": trailing.get("atr_trail_multiplier"),
     }
 
 # ---------- trading loop (background thread)
@@ -250,6 +251,7 @@ def trading_loop():
                         "trailing_stop_pct": exit_cfg["trailing_stop_pct"],
                         "trailing_enable": exit_cfg["trailing_enable"],
                         "activate_profit_pct": exit_cfg["activate_profit_pct"],
+                        "atr_trail_multiplier": exit_cfg["atr_trail_multiplier"],
                     })
                     if o:
                         log_trade("BUY", sym, o["qty"], price, {"score": sig.get("score")})

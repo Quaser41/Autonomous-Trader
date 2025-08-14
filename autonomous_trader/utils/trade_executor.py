@@ -166,14 +166,22 @@ class PaperBroker:
         # initial stops
         trailing_cfg = CFG.get("trailing_stop", {})
         tp_pct = meta.get("take_profit_pct", exits_cfg.get("take_profit_pct", 0.006))
+        atr_pct = meta.get("atr_pct")
+        if atr_pct is None:
+            atr_mult = RISK_CFG.get("atr_stop_multiplier", 1.5)
+            atr_pct = sl_pct / atr_mult if atr_mult else None
         self.positions[symbol] = {
             "qty": qty,
             "entry": price,
             "peak": price,
             "stop": price * (1 - sl_pct),
             "tp_price": price * (1 + tp_pct),
+            "activate_profit_pct": meta.get("activate_profit_pct", trailing_cfg.get("activate_profit_pct", 0.0)),
             "breakeven_trigger_pct": meta.get("breakeven_trigger_pct", trailing_cfg.get("breakeven_pct", 0.003)),
             "trailing_stop_pct": meta.get("trailing_stop_pct", trailing_cfg.get("trail_pct", 0.004)),
+            "atr_trail_multiplier": meta.get("atr_trail_multiplier", trailing_cfg.get("atr_trail_multiplier", 1.0)),
+            "atr_pct": atr_pct,
+            "trail_active": False,
             "meta": meta
         }
         self.daily_trades += 1
@@ -186,17 +194,27 @@ class PaperBroker:
             return
         entry = pos["entry"]
         pos["peak"] = max(pos.get("peak", entry), price)
-        # breakeven if in profit enough
         trailing_cfg = CFG.get("trailing_stop", {})
+        activate_pct = pos.get("activate_profit_pct", trailing_cfg.get("activate_profit_pct", 0.0))
+        if not pos.get("trail_active"):
+            if price >= entry * (1 + activate_pct):
+                pos["trail_active"] = True
+            else:
+                return
+        # breakeven if in profit enough
         trigger_pct = pos.get("breakeven_trigger_pct", trailing_cfg.get("breakeven_pct", 0.003))
-        trigger = entry * (1 + trigger_pct)
-        if price >= trigger:
+        if price >= entry * (1 + trigger_pct):
             pos["stop"] = max(pos["stop"], entry)  # move to breakeven
-            # trail from peak
+        # trail from peak using ATR multiple (fallback to pct)
+        atr_mult = pos.get("atr_trail_multiplier", trailing_cfg.get("atr_trail_multiplier", 1.0))
+        atr_pct = pos.get("atr_pct")
+        if atr_pct and atr_mult > 0:
+            t_pct = atr_pct * atr_mult
+        else:
             t_pct = pos.get("trailing_stop_pct", trailing_cfg.get("trail_pct", 0.004))
-            trail_stop = pos["peak"] * (1 - t_pct)
-            if trail_stop > pos["stop"]:
-                pos["stop"] = trail_stop
+        trail_stop = pos["peak"] * (1 - t_pct)
+        if trail_stop > pos["stop"]:
+            pos["stop"] = trail_stop
 
     def should_exit(self, symbol: str, price: float):
         pos = self.positions.get(symbol)

@@ -33,8 +33,9 @@
   "trailing_stop": {
     "enable": true,
     "activate_profit_pct": 0.003,
-    "breakeven_pct": 0.004,
-    "trail_pct": 0.005
+    "breakeven_pct": 0.006,
+    "trail_pct": 0.01,
+    "atr_trail_multiplier": 1.0
   },
 
   "strategy": {
