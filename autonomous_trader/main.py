@@ -215,7 +215,7 @@ def trading_loop():
                 if should_exit:
                     r = broker.sell(sym, price)
                     if r:
-                        log_trade("SELL", sym, 0, price, {"pnl": r["pnl"], "reason": reason})
+                        log_trade("SELL", sym, r["qty"], price, {"pnl": r["pnl"], "reason": reason})
                         n.send(f"SELL {sym} @ {price:.4f} | PnL: {r['pnl']:.2f} ({reason})")
                 continue
 
