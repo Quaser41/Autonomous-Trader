@@ -37,11 +37,13 @@ class Notifier:
                 print("[WARN] Telegram send failed:", e)
 
 def log_trade(side: str, symbol: str, qty: float, price: float, extra=None):
+    """Record a trade in structured logs and stdout.
+
+    Event lines in ``events.log`` are handled solely by :meth:`Notifier.send`.
+    This helper writes trade details to ``trades.csv`` and prints to stdout.
+    """
     extra = extra or {}
     stamp = dt.datetime.utcnow().isoformat()
-    # events
-    with open(os.path.join(LOG_DIR, "events.log"), "a", encoding="utf-8") as f:
-        f.write(f"[{stamp} UTC] {side} {symbol} @ {price:.4f}\n")
     # trades.csv
     trades_path = os.path.join(LOG_DIR, "trades.csv")
     write_header = not os.path.exists(trades_path)
