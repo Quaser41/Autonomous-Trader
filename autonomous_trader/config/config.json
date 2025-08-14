@@ -21,19 +21,24 @@
     "tradable_balance_ratio": 0.75,
     "stake_per_trade_ratio": 0.2,
     "max_open_trades": 3,
-    "reset_balance": false
+    "reset_balance": false,
+    "daily_loss_limit": 50
   },
 
   "exits": {
     "take_profit_pct": 0.02,
-    "stop_loss_pct": 0.01
+    "stop_loss_pct": 0.008
   },
 
   "trailing_stop": {
     "enable": true,
-    "activate_profit_pct": 0.004,
-    "breakeven_pct": 0.005,
-    "trail_pct": 0.006
+    "activate_profit_pct": 0.003,
+    "breakeven_pct": 0.004,
+    "trail_pct": 0.005
+  },
+
+  "strategy": {
+    "buy_score_threshold": 1.4
   },
 
   "logging": {

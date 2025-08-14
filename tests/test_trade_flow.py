@@ -16,18 +16,20 @@ def test_trade_flow(tmp_path, monkeypatch):
     monkeypatch.setattr(trade_executor, "CD_PATH", tmp_path / "cooldowns.json")
     monkeypatch.setattr(trade_executor, "PPL_PATH", tmp_path / "pnl.json")
     monkeypatch.setattr(trade_executor, "TC_PATH", tmp_path / "tc.json")
+    monkeypatch.setattr(trade_executor, "DP_PATH", tmp_path / "dp.json")
 
     # ensure deterministic risk configuration
     monkeypatch.setitem(trade_executor.RISK_CFG, "tradable_balance_ratio", 1.0)
     monkeypatch.setitem(trade_executor.RISK_CFG, "stake_per_trade_ratio", 1.0)
     monkeypatch.setitem(trade_executor.RISK_CFG, "dry_run_wallet", 1000.0)
+    monkeypatch.setitem(trade_executor.RISK_CFG, "daily_loss_limit", None)
 
     broker = trade_executor.PaperBroker()
     assert broker.balance == 1000.0
 
     symbol = "TEST"
     buy_price = 10.0
-    stake = broker.stake_amount()
+    stake = broker.stake_amount(symbol)
 
     # buy reduces balance and records position
     buy_order = broker.buy(symbol, buy_price, {})

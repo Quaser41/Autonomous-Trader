@@ -29,11 +29,12 @@ def load_crypto_whitelist():
     # remove statically blacklisted symbols
     wl = [s for s in wl if s not in BLACKLIST]
 
-    # drop symbols with negative cumulative PnL
+    # drop symbols with negative cumulative PnL and sort by performance
     if os.path.exists(PERF_PATH):
         try:
             pnl = json.load(open(PERF_PATH, "r"))
             wl = [s for s in wl if pnl.get(s, 0.0) >= 0.0]
+            wl.sort(key=lambda s: pnl.get(s, 0.0), reverse=True)
         except Exception:
             pass
 

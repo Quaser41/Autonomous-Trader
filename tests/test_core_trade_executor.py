@@ -15,6 +15,7 @@ def _patch_paths(tmp_path, monkeypatch):
     monkeypatch.setattr(trade_executor, "CD_PATH", tmp_path / "cooldowns.json")
     monkeypatch.setattr(trade_executor, "PPL_PATH", tmp_path / "pnl.json")
     monkeypatch.setattr(trade_executor, "TC_PATH", tmp_path / "tc.json")
+    monkeypatch.setattr(trade_executor, "DP_PATH", tmp_path / "dp.json")
 
 
 def _setup_risk(monkeypatch):
@@ -22,6 +23,7 @@ def _setup_risk(monkeypatch):
     monkeypatch.setitem(trade_executor.RISK_CFG, "stake_per_trade_ratio", 1.0)
     monkeypatch.setitem(trade_executor.RISK_CFG, "dry_run_wallet", 1000.0)
     monkeypatch.setitem(trade_executor.RISK_CFG, "reset_balance", False)
+    monkeypatch.setitem(trade_executor.RISK_CFG, "daily_loss_limit", None)
 
 
 def test_trade_flow(tmp_path, monkeypatch):
@@ -33,7 +35,7 @@ def test_trade_flow(tmp_path, monkeypatch):
 
     symbol = "TEST"
     buy_price = 10.0
-    stake = broker.stake_amount()
+    stake = broker.stake_amount(symbol)
 
     buy_order = broker.buy(symbol, buy_price, {})
     assert buy_order is not None
