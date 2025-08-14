@@ -29,14 +29,14 @@
 
   "exits": {
     "take_profit_pct": 0.02,
-    "stop_loss_pct": 0.008
+    "stop_loss_pct": 0.015
   },
 
   "trailing_stop": {
     "enable": true,
-    "activate_profit_pct": 0.003,
+    "activate_profit_pct": 0.01,
     "breakeven_pct": 0.006,
-    "trail_pct": 0.01,
+    "trail_pct": 0.02,
     "atr_trail_multiplier": 1.0
   },
 
