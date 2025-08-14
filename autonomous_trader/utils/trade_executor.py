@@ -153,6 +153,14 @@ class PaperBroker:
     def buy(self, symbol: str, price: float, meta: Dict[str, Any]):
         if not self.can_open() or self._on_cooldown(symbol):
             return None
+
+        symbol_pnl = self.symbol_pnl.get(symbol, 0.0)
+        limit = CFG.get("symbol_loss_limit")
+        if limit is not None and symbol_pnl <= limit:
+            if CFG.get("debug", {}).get("verbose"):
+                print(f"[RISK] Skipping {symbol}: pnl {symbol_pnl:.2f} <= {limit:.2f}")
+            return None
+
         stake = self.stake_amount(symbol)
         if stake <= 0:
             return None

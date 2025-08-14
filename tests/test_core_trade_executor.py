@@ -67,3 +67,13 @@ def test_reset_balance(tmp_path, monkeypatch):
     trade_executor.RISK_CFG["reset_balance"] = True
     broker2 = trade_executor.PaperBroker()
     assert broker2.balance == pytest.approx(1000.0)
+
+
+def test_symbol_loss_limit(tmp_path, monkeypatch):
+    _patch_paths(tmp_path, monkeypatch)
+    _setup_risk(monkeypatch)
+    monkeypatch.setitem(trade_executor.CFG, "symbol_loss_limit", -3.0)
+
+    broker = trade_executor.PaperBroker()
+    broker.symbol_pnl["BAD"] = -4.0
+    assert broker.buy("BAD", 10.0, {}) is None
