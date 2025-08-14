@@ -27,12 +27,13 @@ def run_scanner(cfg) -> List[str]:
     sc = cfg.get("scanner", {})
     min_qv = float(sc.get("min_24h_usdt_volume", 10_000_000))
     min_atr_pct = float(sc.get("min_atr_pct", 0.8))
+    min_price = float(sc.get("min_price_usd", 0.0))
     top_n = int(sc.get("max_symbols", 20))
 
     rows: List[Tuple[str, float, float]] = []  # (symbol, qv_usd, atr_pct)
     for sym in hub.list_symbols():
         price, base_vol_24h = hub.snapshot(sym)
-        if price is None or base_vol_24h is None:
+        if price is None or price < min_price or base_vol_24h is None:
             continue
         qv = _to_quote_vol_usd(price, base_vol_24h)
         if qv < min_qv:
@@ -47,7 +48,9 @@ def run_scanner(cfg) -> List[str]:
         fallback = []
         for sym in hub.list_symbols():
             price, base_vol_24h = hub.snapshot(sym)
-            qv = _to_quote_vol_usd(price or 0.0, base_vol_24h or 0.0)
+            if price is None or price < min_price:
+                continue
+            qv = _to_quote_vol_usd(price, base_vol_24h or 0.0)
             if qv >= min_qv:
                 fallback.append((sym, qv))
         fallback.sort(key=lambda x: x[1], reverse=True)
