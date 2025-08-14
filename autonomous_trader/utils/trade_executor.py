@@ -241,12 +241,13 @@ class PaperBroker:
         pos = self.positions.get(symbol)
         if not pos:
             return None
-        proceeds = pos["qty"] * price
-        pnl = proceeds - pos["qty"] * pos["entry"]
+        qty = pos["qty"]
+        proceeds = qty * price
+        pnl = proceeds - qty * pos["entry"]
         self.balance += proceeds
         del self.positions[symbol]
         self.cooldowns[symbol] = self._now()
         self.symbol_pnl[symbol] = self.symbol_pnl.get(symbol, 0.0) + pnl
         self.daily_pnl += pnl
         self._persist_balance(); self._persist_positions(); self._persist_cooldowns(); self._persist_symbol_pnl(); self._persist_daily_pnl()
-        return {"symbol": symbol, "price": price, "pnl": pnl, "balance": self.balance}
+        return {"symbol": symbol, "qty": qty, "price": price, "pnl": pnl, "balance": self.balance}
