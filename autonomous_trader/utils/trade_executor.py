@@ -1,6 +1,6 @@
 
 import os, json, time
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 CFG = json.load(open(os.path.join(BASE_DIR, "config", "config.json"), "r"))
@@ -11,6 +11,7 @@ POS_PATH = os.path.join(BASE_DIR, "data", "performance", "positions.json")
 PPL_PATH = os.path.join(BASE_DIR, "data", "performance", "symbol_pnl.json")
 CD_PATH  = os.path.join(BASE_DIR, "data", "runtime", "cooldowns.json")
 TC_PATH  = os.path.join(BASE_DIR, "data", "runtime", "trade_count.json")
+DP_PATH  = os.path.join(BASE_DIR, "data", "runtime", "daily_pnl.json")
 
 class PaperBroker:
     def __init__(self):
@@ -22,6 +23,7 @@ class PaperBroker:
         self.cooldowns = self._load_cooldowns()
         self.symbol_pnl = self._load_symbol_pnl()
         self.daily_trades, self.trade_day = self._load_trade_count()
+        self.daily_pnl, self.pnl_day = self._load_daily_pnl()
 
         risk_cfg = RISK_CFG
         self.max_open = risk_cfg.get("max_open_trades", 3)
@@ -29,8 +31,9 @@ class PaperBroker:
         self.stake_ratio = risk_cfg.get("stake_per_trade_ratio", 0.2)
         self.cooldown_minutes = risk_cfg.get("cooldown_minutes", 30)
         self.max_trades_day = risk_cfg.get("max_trades_per_day", 10)
+        self.daily_loss_limit = risk_cfg.get("daily_loss_limit")
 
-        self._persist_balance(); self._persist_positions(); self._persist_cooldowns(); self._persist_symbol_pnl(); self._persist_trade_count()
+        self._persist_balance(); self._persist_positions(); self._persist_cooldowns(); self._persist_symbol_pnl(); self._persist_trade_count(); self._persist_daily_pnl()
 
     # ---------- persistence ----------
     def _load_balance(self) -> float:
@@ -77,6 +80,16 @@ class PaperBroker:
             pass
         return 0, today
 
+    def _load_daily_pnl(self):
+        today = time.strftime("%Y-%m-%d", time.gmtime())
+        try:
+            if os.path.exists(DP_PATH):
+                data = json.load(open(DP_PATH, "r"))
+                return data.get("pnl", 0.0), data.get("day", today)
+        except Exception:
+            pass
+        return 0.0, today
+
     def _persist_balance(self):
         with open(BAL_PATH, "w") as f:
             f.write(str(self.balance))
@@ -97,6 +110,10 @@ class PaperBroker:
         with open(TC_PATH, "w", encoding="utf-8") as f:
             json.dump({"count": self.daily_trades, "day": self.trade_day}, f, indent=2)
 
+    def _persist_daily_pnl(self):
+        with open(DP_PATH, "w", encoding="utf-8") as f:
+            json.dump({"pnl": self.daily_pnl, "day": self.pnl_day}, f, indent=2)
+
     # ---------- utils ----------
     def _now(self) -> float:
         return time.time()
@@ -112,18 +129,31 @@ class PaperBroker:
             self.trade_day = today
             self.daily_trades = 0
             self._persist_trade_count()
+        if today != self.pnl_day:
+            self.pnl_day = today
+            self.daily_pnl = 0.0
+            self._persist_daily_pnl()
+        if self.daily_loss_limit is not None and self.daily_pnl <= -abs(self.daily_loss_limit):
+            return False
         if self.daily_trades >= self.max_trades_day:
             return False
         return len(self.positions) < self.max_open and self.balance * self.tradable_ratio > 0
 
-    def stake_amount(self) -> float:
-        return min(self.balance * self.tradable_ratio * self.stake_ratio, self.balance)
+    def stake_amount(self, symbol: Optional[str] = None) -> float:
+        stake = self.balance * self.tradable_ratio * self.stake_ratio
+        if symbol:
+            pnl = self.symbol_pnl.get(symbol, 0.0)
+            if pnl > 0:
+                stake *= 1.5
+            elif pnl < 0:
+                stake *= 0.5
+        return min(stake, self.balance)
 
     # ---------- trading ----------
     def buy(self, symbol: str, price: float, meta: Dict[str, Any]):
         if not self.can_open() or self._on_cooldown(symbol):
             return None
-        stake = self.stake_amount()
+        stake = self.stake_amount(symbol)
         if stake <= 0:
             return None
         exits_cfg = CFG.get("exits", {})
@@ -191,5 +221,6 @@ class PaperBroker:
         del self.positions[symbol]
         self.cooldowns[symbol] = self._now()
         self.symbol_pnl[symbol] = self.symbol_pnl.get(symbol, 0.0) + pnl
-        self._persist_balance(); self._persist_positions(); self._persist_cooldowns(); self._persist_symbol_pnl()
+        self.daily_pnl += pnl
+        self._persist_balance(); self._persist_positions(); self._persist_cooldowns(); self._persist_symbol_pnl(); self._persist_daily_pnl()
         return {"symbol": symbol, "price": price, "pnl": pnl, "balance": self.balance}
