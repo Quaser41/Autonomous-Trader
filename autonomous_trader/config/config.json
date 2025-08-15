@@ -24,11 +24,11 @@
   },
   "risk": {
     "dry_run_wallet": 1000.0,
-    "tradable_balance_ratio": 0.75,
-    "stake_per_trade_ratio": 0.2,
+    "tradable_balance_ratio": 0.5,
+    "stake_per_trade_ratio": 0.1,
     "max_open_trades": 3,
     "reset_balance": false,
-    "daily_loss_limit": 50
+    "daily_loss_limit": 30
   },
   "symbol_loss_limit": -2.0,
   "exits": {
