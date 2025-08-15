@@ -53,6 +53,8 @@ class PaperBroker:
         self.cooldown_minutes = risk_cfg.get("cooldown_minutes", 30)
         self.max_trades_day = risk_cfg.get("max_trades_per_day", 10)
         self.daily_loss_limit = risk_cfg.get("daily_loss_limit")
+        self.fee_pct = risk_cfg.get("fee_pct", 0.0)
+        self.slippage_pct = risk_cfg.get("slippage_pct", 0.0)
 
         self._persist_balance(); self._persist_positions(); self._persist_cooldowns(); self._persist_symbol_pnl(); self._persist_trade_count(); self._persist_daily_pnl()
 
@@ -205,7 +207,8 @@ class PaperBroker:
         sl_pct = meta.get("stop_loss_pct", base_sl)
         if sl_pct > 0:
             stake *= base_sl / sl_pct
-        qty = max(0.00000001, stake / max(price, 1e-9))
+        adj_price = price * (1 + self.slippage_pct + self.fee_pct)
+        qty = max(0.00000001, stake / max(adj_price, 1e-9))
         self.balance -= stake
         # initial stops
         trailing_cfg_base = CFG.get("trailing_stop", {})
@@ -220,7 +223,7 @@ class PaperBroker:
             atr_pct = sl_pct / atr_mult if atr_mult else None
         self.positions[symbol] = {
             "qty": qty,
-            "entry": price,
+            "entry": adj_price,
             "peak": price,
             "stop": price * (1 - sl_pct),
             "tp_price": price * (1 + tp_pct),
@@ -234,7 +237,7 @@ class PaperBroker:
         }
         self.daily_trades += 1
         self._persist_balance(); self._persist_positions(); self._persist_trade_count()
-        return {"symbol": symbol, "qty": qty, "price": price}
+        return {"symbol": symbol, "qty": qty, "price": adj_price}
 
     def update_trailing(self, symbol: str, price: float):
         pos = self.positions.get(symbol)
@@ -286,7 +289,8 @@ class PaperBroker:
         if not pos:
             return None
         qty = pos["qty"]
-        proceeds = qty * price
+        adj_price = price * (1 - self.slippage_pct - self.fee_pct)
+        proceeds = qty * adj_price
         pnl = proceeds - qty * pos["entry"]
         self.balance += proceeds
         del self.positions[symbol]
@@ -294,4 +298,4 @@ class PaperBroker:
         self.symbol_pnl[symbol] = self.symbol_pnl.get(symbol, 0.0) + pnl
         self.daily_pnl += pnl
         self._persist_balance(); self._persist_positions(); self._persist_cooldowns(); self._persist_symbol_pnl(); self._persist_daily_pnl()
-        return {"symbol": symbol, "qty": qty, "price": price, "pnl": pnl, "balance": self.balance}
+        return {"symbol": symbol, "qty": qty, "price": adj_price, "pnl": pnl, "balance": self.balance}
