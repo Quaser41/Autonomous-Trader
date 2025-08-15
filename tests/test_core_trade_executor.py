@@ -77,3 +77,16 @@ def test_symbol_loss_limit(tmp_path, monkeypatch):
     broker = trade_executor.PaperBroker()
     broker.symbol_pnl["BAD"] = -4.0
     assert broker.buy("BAD", 10.0, {}) is None
+
+
+def test_stake_amount_respects_config(tmp_path, monkeypatch):
+    _patch_paths(tmp_path, monkeypatch)
+    _setup_risk(monkeypatch)
+
+    # set ratios to non-default values
+    trade_executor.RISK_CFG["tradable_balance_ratio"] = 0.5
+    trade_executor.RISK_CFG["stake_per_trade_ratio"] = 0.1
+
+    broker = trade_executor.PaperBroker()
+    expected = 1000.0 * 0.5 * 0.1
+    assert broker.stake_amount("TEST") == pytest.approx(expected)
