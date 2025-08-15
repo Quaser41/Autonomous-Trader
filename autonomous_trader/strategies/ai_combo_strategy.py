@@ -90,7 +90,8 @@ def generate_signal(df: pd.DataFrame, cfg) -> dict:
 
     score = float(max(0.0, min(1.5, score)))
 
-    min_score = cfg.get("strategy", {}).get("buy_score_threshold", 1.5)
+    # Minimum score required to trigger a BUY; read from config to allow tuning
+    min_score = cfg.get("strategy", {}).get("buy_score_threshold", 1.3)
     if trend_up and (macd_flip_up or breakout) and score >= min_score:
         atr_pct = float(last["atr_pct"])
         risk_cfg = cfg.get("risk", {})
