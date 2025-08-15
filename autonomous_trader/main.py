@@ -221,6 +221,7 @@ def trading_loop():
 
             if not df.empty and broker.can_open():
                 sig = generate_signal(df, CFG)
+                fail_gate = sig.get("failed")
 
                 # --- TEMP: simple momentum trigger so we can test entries
                 try:
@@ -237,9 +238,13 @@ def trading_loop():
                     if momo >= test_momo:
                         sig = {"signal": "BUY", "score": momo}
                     elif momo <= -test_momo:
-                        sig = {"signal": "HOLD", "score": momo}
+                        sig = {"signal": "HOLD", "score": momo, "failed": fail_gate}
+                    else:
+                        sig["failed"] = fail_gate
                 # --- END TEMP
 
+                if debug_verbose and sig.get("signal") == "HOLD":
+                    print(f"[HOLD] {sym} score={sig.get('score', 0):.2f} gate={sig.get('failed')}")
                 if debug_verbose:
                     print(f"[SIG] {sym} -> {sig}")
                 if sig.get("signal") == "BUY":

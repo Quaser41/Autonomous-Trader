@@ -31,7 +31,7 @@ def macd(series: pd.Series, fast=12, slow=26, signal=9):
 # ---------- strategy
 def generate_signal(df: pd.DataFrame, cfg) -> dict:
     if len(df) < 60:
-        return {"signal": "HOLD", "score": 0.0}
+        return {"signal": "HOLD", "score": 0.0, "failed": "warmup"}
 
     df = df.copy()
 
@@ -60,7 +60,7 @@ def generate_signal(df: pd.DataFrame, cfg) -> dict:
     atr_min = 0.002   # 0.2%
     atr_max = 0.06    # 6%
     if not (atr_min <= float(last["atr_pct"]) <= atr_max):
-        return {"signal": "HOLD", "score": 0.0}
+        return {"signal": "HOLD", "score": 0.0, "failed": "atr_range"}
 
     # trend filter: ema50 > ema200 and both rising
     trend_up = (last["ema50"] > last["ema200"]) and (last["ema50"] > prev["ema50"]) and (last["ema200"] >= prev["ema200"])
@@ -70,7 +70,7 @@ def generate_signal(df: pd.DataFrame, cfg) -> dict:
     rsi_ok = 50 <= last["rsi"] <= 70
     vol_ok = pd.notna(last["vol_ma"]) and last["volume"] > last["vol_ma"] * 1.2
     if not vol_ok:
-        return {"signal": "HOLD", "score": 0.0}
+        return {"signal": "HOLD", "score": 0.0, "failed": "volume"}
 
     # breakout: close above recent 20-bar high with tiny buffer
     breakout = (last["close"] > float(last["hh"]) * 1.001) if pd.notna(last["hh"]) else False
@@ -100,4 +100,12 @@ def generate_signal(df: pd.DataFrame, cfg) -> dict:
         tp_pct = sl_pct * rr_ratio
         return {"signal": "BUY", "score": score, "sl_pct": sl_pct, "tp_pct": tp_pct}
 
-    return {"signal": "HOLD", "score": score}
+    reason = None
+    if not trend_up:
+        reason = "trend"
+    elif not (macd_flip_up or breakout):
+        reason = "momentum"
+    elif score < min_score:
+        reason = "score"
+
+    return {"signal": "HOLD", "score": score, "failed": reason}
