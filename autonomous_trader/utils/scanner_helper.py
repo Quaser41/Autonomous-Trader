@@ -1,7 +1,6 @@
 # utils/scanner_helper.py
-import os
 from typing import List, Tuple
-from utils.data_fetchers import save_runtime_whitelist
+from utils.trending_feed import update_runtime_whitelist
 from utils.market_data_cryptofeed import get_global_hub
 
 def _to_quote_vol_usd(price: float, base_vol: float) -> float:
@@ -19,16 +18,15 @@ def run_scanner(cfg) -> List[str]:
     - Rank by quote volume (price * base_volume_24h)
     - Filter by ATR% floor (cfg['scanner']['min_atr_pct'])
     """
+    sc = cfg.get("scanner", {})
+    top_n = int(sc.get("max_symbols", 20))
     hub = get_global_hub()
     if not hub:
-        save_runtime_whitelist([])
+        update_runtime_whitelist([], max_symbols=top_n)
         return []
-
-    sc = cfg.get("scanner", {})
     min_qv = float(sc.get("min_24h_usdt_volume", 10_000_000))
     min_atr_pct = float(sc.get("min_atr_pct", 0.8))
     min_price = float(sc.get("min_price_usd", 0.0))
-    top_n = int(sc.get("max_symbols", 20))
 
     rows: List[Tuple[str, float, float]] = []  # (symbol, qv_usd, atr_pct)
     for sym in hub.list_symbols():
@@ -55,10 +53,10 @@ def run_scanner(cfg) -> List[str]:
                 fallback.append((sym, qv))
         fallback.sort(key=lambda x: x[1], reverse=True)
         out_syms = [s for s,_ in fallback[:top_n]]
-        save_runtime_whitelist(out_syms)
+        update_runtime_whitelist(out_syms, max_symbols=top_n)
         return out_syms
 
     rows.sort(key=lambda x: x[1], reverse=True)
     out = [s for s,_,_ in rows[:top_n]]
-    save_runtime_whitelist(out)
+    update_runtime_whitelist(out, max_symbols=top_n)
     return out

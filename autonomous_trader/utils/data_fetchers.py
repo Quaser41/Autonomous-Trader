@@ -41,5 +41,5 @@ def load_crypto_whitelist():
     return wl
 
 def save_runtime_whitelist(symbols):
-    with open(RUNTIME_PATH, "w", encoding="utf-8") as f:
-        json.dump(symbols, f, indent=2)
+    from .trending_feed import update_runtime_whitelist
+    update_runtime_whitelist(symbols)
