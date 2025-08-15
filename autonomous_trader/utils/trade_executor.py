@@ -12,6 +12,7 @@ PPL_PATH = os.path.join(BASE_DIR, "data", "performance", "symbol_pnl.json")
 CD_PATH  = os.path.join(BASE_DIR, "data", "runtime", "cooldowns.json")
 TC_PATH  = os.path.join(BASE_DIR, "data", "runtime", "trade_count.json")
 DP_PATH  = os.path.join(BASE_DIR, "data", "runtime", "daily_pnl.json")
+RW_PATH  = os.path.join(BASE_DIR, "data", "runtime", "runtime_whitelist.json")
 
 class PaperBroker:
     def __init__(self):
@@ -156,12 +157,22 @@ class PaperBroker:
 
         symbol_pnl = self.symbol_pnl.get(symbol, 0.0)
         limit = CFG.get("symbol_loss_limit")
-        if limit is not None and symbol_pnl <= limit:
-            if CFG.get("debug", {}).get("verbose"):
-                print(f"[RISK] Skipping {symbol}: pnl {symbol_pnl:.2f} <= {limit:.2f}")
-            return None
-
         stake = self.stake_amount(symbol)
+        if limit is not None:
+            if symbol_pnl <= limit:
+                try:
+                    wl = json.load(open(RW_PATH, "r"))
+                    if symbol in wl:
+                        wl.remove(symbol)
+                        with open(RW_PATH, "w", encoding="utf-8") as f:
+                            json.dump(wl, f, indent=2)
+                except Exception:
+                    pass
+                if CFG.get("debug", {}).get("verbose"):
+                    print(f"[RISK] Skipping {symbol}: pnl {symbol_pnl:.2f} <= {limit:.2f}")
+                return None
+            elif symbol_pnl < 0 and abs(symbol_pnl) >= 0.8 * abs(limit):
+                stake *= 0.5
         if stake <= 0:
             return None
         exits_cfg = CFG.get("exits", {})
