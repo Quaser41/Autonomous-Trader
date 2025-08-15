@@ -32,15 +32,16 @@
   },
   "symbol_loss_limit": -2.0,
   "exits": {
-    "take_profit_pct": 0.02,
-    "stop_loss_pct": 0.015
+    "take_profit_pct": 0.025,
+    "stop_loss_pct": 0.02
   },
   "trailing_stop": {
     "enable": true,
-    "activate_profit_pct": 0.01,
-    "breakeven_pct": 0.006,
-    "trail_pct": 0.02,
-    "atr_trail_multiplier": 1.0
+    "activate_profit_pct": 0.008,
+    "breakeven_pct": 0.005,
+    "trail_pct": 0.018,
+    "atr_trail_multiplier": 1.2,
+    "overrides": {}
   },
   "strategy": {
     "buy_score_threshold": 1.0,
