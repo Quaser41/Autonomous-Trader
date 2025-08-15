@@ -28,7 +28,9 @@
     "stake_per_trade_ratio": 0.1,
     "max_open_trades": 3,
     "reset_balance": false,
-    "daily_loss_limit": 30
+    "daily_loss_limit": 30,
+    "fee_pct": 0.0,
+    "slippage_pct": 0.0
   },
   "symbol_loss_limit": -2.0,
   "exits": {
