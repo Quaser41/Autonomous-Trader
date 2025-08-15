@@ -43,7 +43,8 @@
     "atr_trail_multiplier": 1.0
   },
   "strategy": {
-    "buy_score_threshold": 1.0
+    "buy_score_threshold": 1.0,
+    "momentum_pct": 0.03
   },
   "logging": {
     "print_status_every_sec": 30,

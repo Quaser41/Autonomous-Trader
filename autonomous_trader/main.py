@@ -10,6 +10,7 @@ from utils.trade_executor import PaperBroker
 from utils.data_fetchers import load_crypto_whitelist
 from utils.exchange_utils import get_exchange, filter_supported_symbols
 from strategies.ai_combo_strategy import generate_signal
+from utils.momentum import apply_momentum_entry
 from utils.scanner_helper import run_scanner
 from utils.trending_feed import start_trending_feed
 
@@ -221,27 +222,7 @@ def trading_loop():
 
             if not df.empty and broker.can_open():
                 sig = generate_signal(df, CFG)
-                fail_gate = sig.get("failed")
-
-                # --- TEMP: simple momentum trigger so we can test entries
-                try:
-                    test_momo = float(CFG.get("debug", {}).get("test_momo_entry_pct", 0.0))
-                except Exception:
-                    test_momo = 0.0
-
-                if sig.get("signal") == "HOLD" and test_momo > 0 and len(df) >= 4:
-                    c = df["close"]
-                    momo = (float(c.iloc[-1]) / float(c.iloc[-4])) - 1.0  # ~3 bars lookback
-                    if debug_verbose:
-                        print(f"[TEST] {sym} momentum={momo:.3%} (threshold={test_momo:.3%})")
-
-                    if momo >= test_momo:
-                        sig = {"signal": "BUY", "score": momo}
-                    elif momo <= -test_momo:
-                        sig = {"signal": "HOLD", "score": momo, "failed": fail_gate}
-                    else:
-                        sig["failed"] = fail_gate
-                # --- END TEMP
+                sig = apply_momentum_entry(df, sig, CFG, debug_verbose)
 
                 if debug_verbose and sig.get("signal") == "HOLD":
                     print(f"[HOLD] {sym} score={sig.get('score', 0):.2f} gate={sig.get('failed')}")
