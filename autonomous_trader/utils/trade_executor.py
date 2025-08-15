@@ -2,6 +2,23 @@
 import os, json, time
 from typing import Dict, Any, Optional
 
+# Import the Notifier logger so we can emit messages to events.log.  The module
+# may be loaded in different ways (as part of a package or as a standalone
+# module in tests), so we attempt the package import first and fall back to
+# loading the sibling ``logger.py`` directly if that fails.
+try:  # pragma: no cover - import fallback
+    from utils.logger import Notifier  # type: ignore
+except Exception:  # pragma: no cover
+    import importlib.util, pathlib
+
+    _spec = importlib.util.spec_from_file_location(
+        "logger", pathlib.Path(__file__).resolve().parent / "logger.py"
+    )
+    _logger = importlib.util.module_from_spec(_spec)
+    assert _spec.loader is not None
+    _spec.loader.exec_module(_logger)
+    Notifier = _logger.Notifier  # type: ignore
+
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 CFG = json.load(open(os.path.join(BASE_DIR, "config", "config.json"), "r"))
 RISK_CFG = CFG.get("risk", {})
@@ -13,6 +30,9 @@ CD_PATH  = os.path.join(BASE_DIR, "data", "runtime", "cooldowns.json")
 TC_PATH  = os.path.join(BASE_DIR, "data", "runtime", "trade_count.json")
 DP_PATH  = os.path.join(BASE_DIR, "data", "runtime", "daily_pnl.json")
 RW_PATH  = os.path.join(BASE_DIR, "data", "runtime", "runtime_whitelist.json")
+
+# Global notifier instance used for risk/decision logs.
+LOGGER = Notifier(CFG)
 
 class PaperBroker:
     def __init__(self):
@@ -135,10 +155,15 @@ class PaperBroker:
             self.daily_pnl = 0.0
             self._persist_daily_pnl()
         if self.daily_loss_limit is not None and self.daily_pnl <= -abs(self.daily_loss_limit):
+            LOGGER.send("[RISK] Cannot open trade: daily_loss_limit reached")
             return False
         if self.daily_trades >= self.max_trades_day:
+            LOGGER.send("[RISK] Cannot open trade: max_trades_day reached")
             return False
-        return len(self.positions) < self.max_open and self.balance * self.tradable_ratio > 0
+        if len(self.positions) >= self.max_open:
+            LOGGER.send("[RISK] Cannot open trade: max_open_trades reached")
+            return False
+        return self.balance * self.tradable_ratio > 0
 
     def stake_amount(self, symbol: Optional[str] = None) -> float:
         stake = self.balance * self.tradable_ratio * self.stake_ratio
