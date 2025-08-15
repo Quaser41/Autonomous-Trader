@@ -1,6 +1,6 @@
 # utils/trending_feed.py
 import os, json, re, threading, time, requests
-from typing import List, Set
+from typing import List, Set, Optional
 
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 CFG_PATH = os.path.join(BASE_DIR, "config", "config.json")
@@ -25,11 +25,51 @@ STOPWORDS = {
 
 UA = {"User-Agent": "Mozilla/5.0 (compatible; TrendFetcher/1.2)"}
 
-def save_whitelist(symbols: List[str]) -> None:
+# --- Runtime whitelist merge/update helpers ---
+_update_lock = threading.Lock()
+
+def update_runtime_whitelist(new_syms: List[str], max_symbols: Optional[int] = None) -> List[str]:
+    """Merge ``new_syms`` with any existing runtime whitelist and persist.
+
+    New symbols take precedence over existing ones. The final list is
+    deduplicated and capped by ``max_symbols`` (defaults to the scanner
+    ``max_symbols`` config value or 20).
+    """
+    if max_symbols is None:
+        cfg = _load_cfg()
+        max_symbols = int(((cfg.get("scanner") or {}).get("max_symbols", 20)))
+
     os.makedirs(os.path.dirname(RUNTIME_PATH), exist_ok=True)
-    with open(RUNTIME_PATH, "w", encoding="utf-8") as f:
-        json.dump(symbols, f, indent=2)
-    print(f"[TREND] Updated runtime whitelist with {len(symbols)} symbols.")
+    with _update_lock:
+        existing: List[str] = []
+        if os.path.exists(RUNTIME_PATH):
+            try:
+                with open(RUNTIME_PATH, "r", encoding="utf-8") as f:
+                    existing = json.load(f) or []
+            except Exception:
+                existing = []
+
+        merged: List[str] = []
+        seen = set()
+        for sym in new_syms + existing:
+            s = sym.strip().upper()
+            if s and s not in seen:
+                merged.append(s)
+                seen.add(s)
+            if len(merged) >= max_symbols:
+                break
+
+        tmp_path = RUNTIME_PATH + ".tmp"
+        with open(tmp_path, "w", encoding="utf-8") as f:
+            json.dump(merged, f, indent=2)
+        os.replace(tmp_path, RUNTIME_PATH)
+
+    print(f"[TREND] Updated runtime whitelist with {len(merged)} symbols.")
+    return merged
+
+
+def save_whitelist(symbols: List[str]) -> None:
+    update_runtime_whitelist(symbols)
 
 def _load_cfg():
     try:
