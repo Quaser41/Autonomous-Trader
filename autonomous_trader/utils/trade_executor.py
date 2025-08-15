@@ -183,7 +183,11 @@ class PaperBroker:
         qty = max(0.00000001, stake / max(price, 1e-9))
         self.balance -= stake
         # initial stops
-        trailing_cfg = CFG.get("trailing_stop", {})
+        trailing_cfg_base = CFG.get("trailing_stop", {})
+        overrides = trailing_cfg_base.get("overrides", {})
+        symbol_cfg = overrides.get(symbol, {})
+        trailing_cfg = {k: v for k, v in trailing_cfg_base.items() if k != "overrides"}
+        trailing_cfg.update(symbol_cfg)
         tp_pct = meta.get("take_profit_pct", exits_cfg.get("take_profit_pct", 0.006))
         atr_pct = meta.get("atr_pct")
         if atr_pct is None:
@@ -213,7 +217,11 @@ class PaperBroker:
             return
         entry = pos["entry"]
         pos["peak"] = max(pos.get("peak", entry), price)
-        trailing_cfg = CFG.get("trailing_stop", {})
+        trailing_cfg_base = CFG.get("trailing_stop", {})
+        overrides = trailing_cfg_base.get("overrides", {})
+        symbol_cfg = overrides.get(symbol, {})
+        trailing_cfg = {k: v for k, v in trailing_cfg_base.items() if k != "overrides"}
+        trailing_cfg.update(symbol_cfg)
         activate_pct = pos.get("activate_profit_pct", trailing_cfg.get("activate_profit_pct", 0.0))
         if not pos.get("trail_active"):
             if price >= entry * (1 + activate_pct):
