@@ -5,6 +5,10 @@ title Auto-Trader
 :: Jump to this script’s directory
 cd /d "%~dp0"
 
+:: Update repository to latest main branch
+git fetch origin
+git reset --hard origin/main
+
 :: Ensure a logs directory
 if not exist logs mkdir logs
 
