@@ -33,6 +33,9 @@ TC_PATH  = os.path.join(BASE_DIR, "data", "runtime", "trade_count.json")
 DP_PATH  = os.path.join(BASE_DIR, "data", "runtime", "daily_pnl.json")
 RW_PATH  = os.path.join(BASE_DIR, "data", "runtime", "runtime_whitelist.json")
 
+# maintain per-symbol trade history for expectancy calculations
+EXPECTANCY_WINDOW = RISK_CFG.get("expectancy_window", 30)
+
 # Global notifier instance used for risk/decision logs.
 LOGGER = Notifier(CFG)
 
@@ -44,6 +47,7 @@ class PaperBroker:
         self.balance = self._load_balance()
         self.positions = self._load_positions()
         self.cooldowns = self._load_cooldowns()
+        self.expectancy_window = EXPECTANCY_WINDOW
         self.symbol_pnl = self._load_symbol_pnl()
         self.daily_trades, self.trade_day = self._load_trade_count()
         self.daily_pnl, self.pnl_day = self._load_daily_pnl()
@@ -94,10 +98,18 @@ class PaperBroker:
             pass
         return {}
 
-    def _load_symbol_pnl(self) -> Dict[str, float]:
+    def _load_symbol_pnl(self) -> Dict[str, list]:
         try:
             if os.path.exists(PPL_PATH):
-                return json.load(open(PPL_PATH, "r"))
+                data = json.load(open(PPL_PATH, "r"))
+                if isinstance(data, dict):
+                    result = {}
+                    for sym, val in data.items():
+                        if isinstance(val, list):
+                            result[sym] = val[-self.expectancy_window :]
+                        elif isinstance(val, (int, float)):
+                            result[sym] = [float(val)]
+                    return result
         except Exception:
             pass
         return {}
@@ -185,9 +197,9 @@ class PaperBroker:
         elif self.daily_pnl > 0:
             stake *= POS_PNL_MULT
 
-        # adjust based on symbol performance
+        # adjust based on symbol performance using rolling PnL history
         if symbol:
-            pnl = self.symbol_pnl.get(symbol, 0.0)
+            pnl = sum(self.symbol_pnl.get(symbol, []))
             if pnl > 0:
                 stake *= POS_PNL_MULT
             elif pnl < 0:
@@ -199,7 +211,7 @@ class PaperBroker:
         if not self.can_open() or self._on_cooldown(symbol):
             return None
 
-        symbol_pnl = self.symbol_pnl.get(symbol, 0.0)
+        symbol_pnl = sum(self.symbol_pnl.get(symbol, []))
         limit = CFG.get("symbol_loss_limit")
         stake = self.stake_amount(symbol)
         if limit is not None:
@@ -312,7 +324,11 @@ class PaperBroker:
         self.balance += proceeds
         del self.positions[symbol]
         self.cooldowns[symbol] = self._now()
-        self.symbol_pnl[symbol] = self.symbol_pnl.get(symbol, 0.0) + pnl
+        history = self.symbol_pnl.get(symbol, [])
+        history.append(pnl)
+        if len(history) > self.expectancy_window:
+            history = history[-self.expectancy_window :]
+        self.symbol_pnl[symbol] = history
         self.daily_pnl += pnl
         if pnl < 0:
             self.consecutive_losses += 1

@@ -41,7 +41,7 @@ def test_symbol_loss_limit_removes_from_whitelist(tmp_path, monkeypatch):
     broker.buy("BAD", 10.0, {})
     broker.sell("BAD", 0.0)
 
-    assert broker.symbol_pnl["BAD"] == pytest.approx(-500.0)
+    assert sum(broker.symbol_pnl["BAD"]) == pytest.approx(-500.0)
 
     wl_before = json.loads(rw_path.read_text())
     assert "BAD" in wl_before

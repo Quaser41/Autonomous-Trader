@@ -13,7 +13,7 @@ Example cron entry to run daily at midnight (UTC):
 import os
 import json
 import sys
-from typing import Dict
+from typing import Dict, Any
 
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -36,7 +36,7 @@ def _read_balance() -> float:
         return 0.0
 
 
-def _read_symbol_pnl() -> Dict[str, float]:
+def _read_symbol_pnl() -> Dict[str, Any]:
     try:
         with open(PNL_PATH, "r", encoding="utf-8") as f:
             return json.load(f)
@@ -51,7 +51,15 @@ def reconcile() -> None:
 
     balance = _read_balance()
     pnl_map = _read_symbol_pnl()
-    total_pnl = sum(float(v) for v in pnl_map.values())
+    total_pnl = 0.0
+    for v in pnl_map.values():
+        if isinstance(v, list):
+            total_pnl += sum(v)
+        else:
+            try:
+                total_pnl += float(v)
+            except Exception:
+                continue
     expected = start + total_pnl
     diff = balance - expected
 

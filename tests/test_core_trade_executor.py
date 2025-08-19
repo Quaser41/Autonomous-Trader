@@ -75,7 +75,7 @@ def test_symbol_loss_limit(tmp_path, monkeypatch):
     monkeypatch.setitem(trade_executor.CFG, "symbol_loss_limit", -3.0)
 
     broker = trade_executor.PaperBroker()
-    broker.symbol_pnl["BAD"] = -4.0
+    broker.symbol_pnl["BAD"] = [-4.0]
     assert broker.buy("BAD", 10.0, {}) is None
 
 
