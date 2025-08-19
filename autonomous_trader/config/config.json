@@ -14,6 +14,12 @@
       "ADA/USDT"
     ]
   },
+  "whitelist": [
+    "MOON/USD",
+    "BIO/USD",
+    "SOL/USDT",
+    "ADA/USDT"
+  ],
   "scanner": {
     "enable": true,
     "refresh_minutes": 90,
@@ -30,9 +36,12 @@
     "reset_balance": false,
     "daily_loss_limit": 30,
     "fee_pct": 0.0,
-    "slippage_pct": 0.0
+    "slippage_pct": 0.0,
+    "positive_pnl_stake_multiplier": 1.5,
+    "negative_pnl_stake_multiplier": 0.5
   },
   "symbol_loss_limit": -2.0,
+  "whitelist_min_pnl": -1.0,
   "exits": {
     "take_profit_pct": 0.025,
     "stop_loss_pct": 0.015

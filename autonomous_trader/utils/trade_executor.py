@@ -22,6 +22,8 @@ except Exception:  # pragma: no cover
 BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 CFG = json.load(open(os.path.join(BASE_DIR, "config", "config.json"), "r"))
 RISK_CFG = CFG.get("risk", {})
+POS_PNL_MULT = RISK_CFG.get("positive_pnl_stake_multiplier", 1.5)
+NEG_PNL_MULT = RISK_CFG.get("negative_pnl_stake_multiplier", 0.5)
 
 BAL_PATH = os.path.join(BASE_DIR, "data", "performance", "balance.txt")
 POS_PATH = os.path.join(BASE_DIR, "data", "performance", "positions.json")
@@ -178,9 +180,9 @@ class PaperBroker:
         if symbol:
             pnl = self.symbol_pnl.get(symbol, 0.0)
             if pnl > 0:
-                stake *= 1.5
+                stake *= POS_PNL_MULT
             elif pnl < 0:
-                stake *= 0.5
+                stake *= NEG_PNL_MULT
         return min(stake, self.balance)
 
     # ---------- trading ----------
