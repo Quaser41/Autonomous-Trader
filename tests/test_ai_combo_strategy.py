@@ -36,3 +36,29 @@ def test_buy_score_threshold_respected():
 
     assert ai_combo_strategy.generate_signal(df, high_cfg)["signal"] == "HOLD"
     assert ai_combo_strategy.generate_signal(df, low_cfg)["signal"] == "BUY"
+
+
+def test_min_avg_volume_filter():
+    df = _synth_data()
+    cfg = {"strategy": {"filters": {"avg_volume_period": 20, "min_avg_volume": 2000}}}
+    res = ai_combo_strategy.generate_signal(df, cfg)
+    assert res["signal"] == "HOLD"
+    assert res.get("failed") == "avg_volume"
+
+
+def test_atr_ceiling_filter():
+    df = _synth_data()
+    df["high"] = df["close"] * 1.2
+    df["low"] = df["close"] * 0.8
+    cfg = {"strategy": {"filters": {"max_atr_pct": 0.01}}}
+    res = ai_combo_strategy.generate_signal(df, cfg)
+    assert res["signal"] == "HOLD"
+    assert res.get("failed") == "atr_range"
+
+
+def test_adx_filter():
+    df = _synth_data()
+    cfg = {"strategy": {"filters": {"adx_period": 14, "min_adx": 101}}}
+    res = ai_combo_strategy.generate_signal(df, cfg)
+    assert res["signal"] == "HOLD"
+    assert res.get("failed") == "adx"
