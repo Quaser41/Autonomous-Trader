@@ -33,6 +33,7 @@
     "tradable_balance_ratio": 0.5,
     "stake_per_trade_ratio": 0.1,
     "max_open_trades": 3,
+    "max_trades_per_day": 5,
     "reset_balance": false,
     "daily_loss_limit": 30,
     "fee_pct": 0.0,
