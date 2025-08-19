@@ -46,7 +46,7 @@
     "overrides": {}
   },
   "strategy": {
-    "buy_score_threshold": 1.3,
+    "buy_score_threshold": 1.5,
     "momentum_pct": 0.03
   },
   "logging": {
