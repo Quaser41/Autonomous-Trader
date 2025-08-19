@@ -20,6 +20,21 @@ def atr(df: pd.DataFrame, period: int = 14) -> pd.Series:
                     (l - prev_close).abs()], axis=1).max(axis=1)
     return tr.ewm(alpha=1/period, adjust=False).mean()
 
+def adx(df: pd.DataFrame, period: int = 14) -> pd.Series:
+    """Average Directional Index indicating trend strength."""
+    h, l, c = df["high"], df["low"], df["close"]
+    up_move = h.diff()
+    down_move = l.shift(1) - l
+    plus_dm = up_move.where((up_move > down_move) & (up_move > 0), 0.0)
+    minus_dm = down_move.where((down_move > up_move) & (down_move > 0), 0.0)
+
+    tr = pd.concat([(h - l), (h - c.shift(1)).abs(), (l - c.shift(1)).abs()], axis=1).max(axis=1)
+    atr_series = tr.ewm(alpha=1/period, adjust=False).mean()
+    plus_di = 100 * plus_dm.ewm(alpha=1/period, adjust=False).mean() / atr_series
+    minus_di = 100 * minus_dm.ewm(alpha=1/period, adjust=False).mean() / atr_series
+    dx = (plus_di - minus_di).abs() / (plus_di + minus_di).replace(0, np.nan) * 100
+    return dx.ewm(alpha=1/period, adjust=False).mean().fillna(0.0)
+
 def macd(series: pd.Series, fast=12, slow=26, signal=9):
     ema_fast = ema(series, fast)
     ema_slow = ema(series, slow)
@@ -54,13 +69,29 @@ def generate_signal(df: pd.DataFrame, cfg) -> dict:
 
     last   = df.iloc[-1]
     prev   = df.iloc[-2]
+    filters_cfg = cfg.get("strategy", {}).get("filters", {})
 
     # ---- gates
-    # volatility gate: allow between ~0.2% and ~6% (tune if needed)
-    atr_min = 0.002   # 0.2%
-    atr_max = 0.06    # 6%
+    # volatility gate: enforce ATR%% ceiling and optional floor
+    atr_min = filters_cfg.get("min_atr_pct", 0.002)
+    atr_max = filters_cfg.get("max_atr_pct", 0.06)
     if not (atr_min <= float(last["atr_pct"]) <= atr_max):
         return {"signal": "HOLD", "score": 0.0, "failed": "atr_range"}
+
+    # average volume gate
+    avg_period = filters_cfg.get("avg_volume_period", 20)
+    min_avg_vol = filters_cfg.get("min_avg_volume", 0)
+    avg_vol = df["volume"].tail(avg_period).mean()
+    if avg_vol < min_avg_vol:
+        return {"signal": "HOLD", "score": 0.0, "failed": "avg_volume"}
+
+    # optional ADX trend-strength filter
+    adx_period = filters_cfg.get("adx_period")
+    min_adx = filters_cfg.get("min_adx")
+    if adx_period and min_adx:
+        df["adx"] = adx(df, adx_period)
+        if float(df["adx"].iloc[-1]) < float(min_adx):
+            return {"signal": "HOLD", "score": 0.0, "failed": "adx"}
 
     # trend filter: ema50 > ema200 and both rising
     trend_up = (last["ema50"] > last["ema200"]) and (last["ema50"] > prev["ema50"]) and (last["ema200"] >= prev["ema200"])
