@@ -47,13 +47,14 @@ class PaperBroker:
         self.symbol_pnl = self._load_symbol_pnl()
         self.daily_trades, self.trade_day = self._load_trade_count()
         self.daily_pnl, self.pnl_day = self._load_daily_pnl()
+        self.consecutive_losses = 0
 
         risk_cfg = RISK_CFG
         self.max_open = risk_cfg.get("max_open_trades", 3)
         self.tradable_ratio = risk_cfg.get("tradable_balance_ratio", 0.75)
         self.stake_ratio = risk_cfg.get("stake_per_trade_ratio", 0.2)
         self.cooldown_minutes = risk_cfg.get("cooldown_minutes", 30)
-        self.max_trades_day = risk_cfg.get("max_trades_per_day", 10)
+        self.max_trades_per_day = risk_cfg.get("max_trades_per_day", 10)
         self.daily_loss_limit = risk_cfg.get("daily_loss_limit")
         self.fee_pct = risk_cfg.get("fee_pct", 0.0)
         self.slippage_pct = risk_cfg.get("slippage_pct", 0.0)
@@ -167,8 +168,8 @@ class PaperBroker:
         if self.daily_loss_limit is not None and self.daily_pnl <= -abs(self.daily_loss_limit):
             LOGGER.send("[RISK] Cannot open trade: daily_loss_limit reached")
             return False
-        if self.daily_trades >= self.max_trades_day:
-            LOGGER.send("[RISK] Cannot open trade: max_trades_day reached")
+        if self.daily_trades >= self.max_trades_per_day:
+            LOGGER.send("[RISK] Cannot open trade: max_trades_per_day reached")
             return False
         if len(self.positions) >= self.max_open:
             LOGGER.send("[RISK] Cannot open trade: max_open_trades reached")
@@ -177,6 +178,14 @@ class PaperBroker:
 
     def stake_amount(self, symbol: Optional[str] = None) -> float:
         stake = self.balance * self.tradable_ratio * self.stake_ratio
+
+        # adjust based on account performance
+        if self.daily_pnl < 0 or self.consecutive_losses >= 2:
+            stake *= NEG_PNL_MULT
+        elif self.daily_pnl > 0:
+            stake *= POS_PNL_MULT
+
+        # adjust based on symbol performance
         if symbol:
             pnl = self.symbol_pnl.get(symbol, 0.0)
             if pnl > 0:
@@ -305,5 +314,9 @@ class PaperBroker:
         self.cooldowns[symbol] = self._now()
         self.symbol_pnl[symbol] = self.symbol_pnl.get(symbol, 0.0) + pnl
         self.daily_pnl += pnl
+        if pnl < 0:
+            self.consecutive_losses += 1
+        else:
+            self.consecutive_losses = 0
         self._persist_balance(); self._persist_positions(); self._persist_cooldowns(); self._persist_symbol_pnl(); self._persist_daily_pnl()
         return {"symbol": symbol, "qty": qty, "price": adj_price, "pnl": pnl, "balance": self.balance}
