@@ -72,3 +72,13 @@ continuous updates, schedule the script via cron, for example:
 
 The main bot (`main.py` or `bot_runner.py`) already starts a background thread
 that performs the same refresh every few minutes when it is running.
+
+## Equity Reconciliation
+
+Use `tools/reconcile_equity.py` to verify that the stored wallet balance matches the cumulative per-symbol PnL. Schedule the script to run once per day (e.g., via cron):
+
+```
+0 0 * * * /usr/bin/python /path/to/tools/reconcile_equity.py
+```
+
+Any discrepancy is logged to `data/logs/events.log` through the standard `Notifier`.
