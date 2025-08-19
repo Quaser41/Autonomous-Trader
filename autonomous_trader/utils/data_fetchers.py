@@ -17,6 +17,8 @@ except Exception:
 
 def load_crypto_whitelist():
     wl = _CONFIG.get("whitelist", [])
+    pnl_threshold = _CONFIG.get("whitelist_min_pnl", -1.0)
+
     # overlay with runtime list if exists
     if os.path.exists(RUNTIME_PATH):
         try:
@@ -29,11 +31,11 @@ def load_crypto_whitelist():
     # remove statically blacklisted symbols
     wl = [s for s in wl if s not in BLACKLIST]
 
-    # drop symbols with negative cumulative PnL and sort by performance
+    # drop symbols performing below threshold and sort by performance
     if os.path.exists(PERF_PATH):
         try:
             pnl = json.load(open(PERF_PATH, "r"))
-            wl = [s for s in wl if pnl.get(s, 0.0) >= 0.0]
+            wl = [s for s in wl if pnl.get(s, 0.0) >= pnl_threshold]
             wl.sort(key=lambda s: pnl.get(s, 0.0), reverse=True)
         except Exception:
             pass
