@@ -56,6 +56,12 @@ class PaperBroker:
         self.fee_pct = risk_cfg.get("fee_pct", 0.0)
         self.slippage_pct = risk_cfg.get("slippage_pct", 0.0)
 
+        # cache exit and trailing stop configuration
+        self.exits_cfg = CFG.get("exits", {})
+        self.trailing_cfg_base = CFG.get("trailing_stop", {})
+        self.stop_loss_pct = self.exits_cfg.get("stop_loss_pct", 0.015)
+        self.trail_pct = self.trailing_cfg_base.get("trail_pct", 0.012)
+
         self._persist_balance(); self._persist_positions(); self._persist_cooldowns(); self._persist_symbol_pnl(); self._persist_trade_count(); self._persist_daily_pnl()
 
     # ---------- persistence ----------
@@ -202,8 +208,8 @@ class PaperBroker:
                 stake *= 0.5
         if stake <= 0:
             return None
-        exits_cfg = CFG.get("exits", {})
-        base_sl = exits_cfg.get("stop_loss_pct", 0.01)
+        exits_cfg = self.exits_cfg
+        base_sl = exits_cfg.get("stop_loss_pct", self.stop_loss_pct)
         sl_pct = meta.get("stop_loss_pct", base_sl)
         if sl_pct > 0:
             stake *= base_sl / sl_pct
@@ -211,7 +217,7 @@ class PaperBroker:
         qty = max(0.00000001, stake / max(adj_price, 1e-9))
         self.balance -= stake
         # initial stops
-        trailing_cfg_base = CFG.get("trailing_stop", {})
+        trailing_cfg_base = self.trailing_cfg_base
         overrides = trailing_cfg_base.get("overrides", {})
         symbol_cfg = overrides.get(symbol, {})
         trailing_cfg = {k: v for k, v in trailing_cfg_base.items() if k != "overrides"}
@@ -229,7 +235,7 @@ class PaperBroker:
             "tp_price": price * (1 + tp_pct),
             "activate_profit_pct": meta.get("activate_profit_pct", trailing_cfg.get("activate_profit_pct", 0.0)),
             "breakeven_trigger_pct": meta.get("breakeven_trigger_pct", trailing_cfg.get("breakeven_pct", 0.003)),
-            "trailing_stop_pct": meta.get("trailing_stop_pct", trailing_cfg.get("trail_pct", 0.004)),
+            "trailing_stop_pct": meta.get("trailing_stop_pct", trailing_cfg.get("trail_pct", self.trail_pct)),
             "atr_trail_multiplier": meta.get("atr_trail_multiplier", trailing_cfg.get("atr_trail_multiplier", 1.0)),
             "atr_pct": atr_pct,
             "trail_active": False,
@@ -245,7 +251,7 @@ class PaperBroker:
             return
         entry = pos["entry"]
         pos["peak"] = max(pos.get("peak", entry), price)
-        trailing_cfg_base = CFG.get("trailing_stop", {})
+        trailing_cfg_base = self.trailing_cfg_base
         overrides = trailing_cfg_base.get("overrides", {})
         symbol_cfg = overrides.get(symbol, {})
         trailing_cfg = {k: v for k, v in trailing_cfg_base.items() if k != "overrides"}
@@ -266,7 +272,7 @@ class PaperBroker:
         if atr_pct and atr_mult > 0:
             t_pct = atr_pct * atr_mult
         else:
-            t_pct = pos.get("trailing_stop_pct", trailing_cfg.get("trail_pct", 0.004))
+            t_pct = pos.get("trailing_stop_pct", trailing_cfg.get("trail_pct", self.trail_pct))
         trail_stop = pos["peak"] * (1 - t_pct)
         if trail_stop > pos["stop"]:
             pos["stop"] = trail_stop
