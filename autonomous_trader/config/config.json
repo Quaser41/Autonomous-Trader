@@ -24,7 +24,7 @@
     "enable": true,
     "refresh_minutes": 90,
     "min_24h_usdt_volume": 10000000,
-    "min_atr_pct": 0.8,
+    "min_atr_pct": 0.008,
     "min_price_usd": 0.01,
     "max_symbols": 20
   },
