@@ -39,7 +39,8 @@
     "fee_pct": 0.0,
     "slippage_pct": 0.0,
     "positive_pnl_stake_multiplier": 1.5,
-    "negative_pnl_stake_multiplier": 0.5
+    "negative_pnl_stake_multiplier": 0.5,
+    "consecutive_loss_limit": 3
   },
   "symbol_loss_limit": -2.0,
   "whitelist_min_pnl": -1.0,
