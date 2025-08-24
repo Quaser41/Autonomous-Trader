@@ -57,7 +57,7 @@
     "overrides": {}
   },
   "strategy": {
-    "buy_score_threshold": 1.5,
+    "buy_score_threshold": 1.1,
     "momentum_pct": 0.03,
     "filters": {
       "avg_volume_period": 20,
