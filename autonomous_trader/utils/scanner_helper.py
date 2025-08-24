@@ -1,4 +1,5 @@
 # utils/scanner_helper.py
+import os
 from typing import List, Tuple
 from utils.trending_feed import update_runtime_whitelist
 from utils.market_data_cryptofeed import get_global_hub
@@ -26,6 +27,13 @@ def run_scanner(cfg) -> List[str]:
         return []
     min_qv = float(sc.get("min_24h_usdt_volume", 10_000_000))
     min_atr_pct = float(sc.get("min_atr_pct", 0.8))
+    # Allow runtime override via environment variable
+    env_min_atr = os.getenv("SCANNER_MIN_ATR_PCT")
+    if env_min_atr:
+        try:
+            min_atr_pct = float(env_min_atr)
+        except ValueError:
+            pass
     min_price = float(sc.get("min_price_usd", 0.0))
 
     rows: List[Tuple[str, float, float]] = []  # (symbol, qv_usd, atr_pct)
