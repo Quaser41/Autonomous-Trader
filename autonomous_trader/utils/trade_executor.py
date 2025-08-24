@@ -213,7 +213,7 @@ class PaperBroker:
 
         symbol_pnl = sum(self.symbol_pnl.get(symbol, []))
         limit = CFG.get("symbol_loss_limit")
-        stake = self.stake_amount(symbol)
+        risk_amount = self.stake_amount(symbol)
         if limit is not None:
             if symbol_pnl <= limit:
                 try:
@@ -228,16 +228,17 @@ class PaperBroker:
                     print(f"[RISK] Skipping {symbol}: pnl {symbol_pnl:.2f} <= {limit:.2f}")
                 return None
             elif symbol_pnl < 0 and abs(symbol_pnl) >= 0.8 * abs(limit):
-                stake *= 0.5
-        if stake <= 0:
+                risk_amount *= 0.5
+        if risk_amount <= 0:
             return None
         exits_cfg = self.exits_cfg
         base_sl = exits_cfg.get("stop_loss_pct", self.stop_loss_pct)
         sl_pct = meta.get("stop_loss_pct", base_sl)
-        if sl_pct > 0:
-            stake *= base_sl / sl_pct
+        if sl_pct <= 0:
+            return None
         adj_price = price * (1 + self.slippage_pct + self.fee_pct)
-        qty = max(0.00000001, stake / max(adj_price, 1e-9))
+        qty = max(0.00000001, risk_amount / (sl_pct * max(price, 1e-9)))
+        stake = qty * adj_price
         self.balance -= stake
         # initial stops
         trailing_cfg_base = self.trailing_cfg_base

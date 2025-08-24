@@ -20,7 +20,8 @@ def _patch_paths(tmp_path, monkeypatch):
 
 def _setup_risk(monkeypatch):
     monkeypatch.setitem(trade_executor.RISK_CFG, "tradable_balance_ratio", 1.0)
-    monkeypatch.setitem(trade_executor.RISK_CFG, "stake_per_trade_ratio", 1.0)
+    # risk per trade ratio is expressed as fraction of tradable balance
+    monkeypatch.setitem(trade_executor.RISK_CFG, "stake_per_trade_ratio", 0.015)
     monkeypatch.setitem(trade_executor.RISK_CFG, "dry_run_wallet", 1000.0)
     monkeypatch.setitem(trade_executor.RISK_CFG, "reset_balance", False)
     monkeypatch.setitem(trade_executor.RISK_CFG, "daily_loss_limit", None)
@@ -35,11 +36,15 @@ def test_trade_flow(tmp_path, monkeypatch):
 
     symbol = "TEST"
     buy_price = 10.0
-    stake = broker.stake_amount(symbol)
+    risk = broker.stake_amount(symbol)
+    sl_pct = trade_executor.CFG.get("exits", {}).get("stop_loss_pct", broker.stop_loss_pct)
+    expected_qty = risk / (sl_pct * buy_price)
+    expected_stake = expected_qty * buy_price
 
     buy_order = broker.buy(symbol, buy_price, {})
     assert buy_order is not None
-    assert broker.balance == pytest.approx(1000.0 - stake)
+    assert buy_order["qty"] == pytest.approx(expected_qty)
+    assert broker.balance == pytest.approx(1000.0 - expected_stake)
     assert symbol in broker.positions
 
     sell_price = 12.0
@@ -47,11 +52,10 @@ def test_trade_flow(tmp_path, monkeypatch):
     assert result is not None
     assert symbol not in broker.positions
 
-    qty = stake / buy_price
-    expected_balance = 1000.0 - stake + qty * sell_price
+    expected_balance = 1000.0 - expected_stake + expected_qty * sell_price
     assert broker.balance == pytest.approx(expected_balance)
     assert result["balance"] == pytest.approx(expected_balance)
-    assert result["pnl"] == pytest.approx(qty * (sell_price - buy_price))
+    assert result["pnl"] == pytest.approx(expected_qty * (sell_price - buy_price))
 
 
 def test_reset_balance(tmp_path, monkeypatch):
@@ -110,7 +114,7 @@ def test_max_trades_per_day_limit(tmp_path, monkeypatch):
     trade_executor.RISK_CFG["max_trades_per_day"] = 2
     trade_executor.RISK_CFG["max_open_trades"] = 5
     trade_executor.RISK_CFG["tradable_balance_ratio"] = 0.5
-    trade_executor.RISK_CFG["stake_per_trade_ratio"] = 0.1
+    trade_executor.RISK_CFG["stake_per_trade_ratio"] = 0.015
 
     broker = trade_executor.PaperBroker()
     assert broker.buy("AAA", 10.0, {}) is not None

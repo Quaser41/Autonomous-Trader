@@ -21,7 +21,8 @@ def _patch_paths(tmp_path, monkeypatch):
 
 def _setup_risk(monkeypatch):
     monkeypatch.setitem(trade_executor.RISK_CFG, "tradable_balance_ratio", 1.0)
-    monkeypatch.setitem(trade_executor.RISK_CFG, "stake_per_trade_ratio", 0.5)
+    # configure risk so that position size is 500 at default 1.5% stop loss
+    monkeypatch.setitem(trade_executor.RISK_CFG, "stake_per_trade_ratio", 0.0075)
     monkeypatch.setitem(trade_executor.RISK_CFG, "dry_run_wallet", 1000.0)
     monkeypatch.setitem(trade_executor.RISK_CFG, "reset_balance", False)
     monkeypatch.setitem(trade_executor.RISK_CFG, "daily_loss_limit", None)
