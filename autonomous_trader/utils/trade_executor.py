@@ -62,6 +62,7 @@ class PaperBroker:
         self.daily_loss_limit = risk_cfg.get("daily_loss_limit")
         self.fee_pct = risk_cfg.get("fee_pct", 0.0)
         self.slippage_pct = risk_cfg.get("slippage_pct", 0.0)
+        self.consecutive_loss_limit = risk_cfg.get("consecutive_loss_limit", 3)
 
         # cache exit and trailing stop configuration
         self.exits_cfg = CFG.get("exits", {})
@@ -211,11 +212,17 @@ class PaperBroker:
         if not self.can_open() or self._on_cooldown(symbol):
             return None
 
-        symbol_pnl = sum(self.symbol_pnl.get(symbol, []))
-        limit = CFG.get("symbol_loss_limit")
         stake = self.stake_amount(symbol)
-        if limit is not None:
-            if symbol_pnl <= limit:
+        loss_limit = self.consecutive_loss_limit
+        if loss_limit is not None and self.consecutive_losses >= loss_limit:
+            LOGGER.send("[RISK] Consecutive loss limit reached; scaling stake down")
+            stake *= NEG_PNL_MULT
+            if stake <= 0:
+                return None
+        symbol_pnl = sum(self.symbol_pnl.get(symbol, []))
+        sym_limit = CFG.get("symbol_loss_limit")
+        if sym_limit is not None:
+            if symbol_pnl <= sym_limit:
                 try:
                     wl = json.load(open(RW_PATH, "r"))
                     if symbol in wl:
@@ -225,9 +232,9 @@ class PaperBroker:
                 except Exception:
                     pass
                 if CFG.get("debug", {}).get("verbose"):
-                    print(f"[RISK] Skipping {symbol}: pnl {symbol_pnl:.2f} <= {limit:.2f}")
+                    print(f"[RISK] Skipping {symbol}: pnl {symbol_pnl:.2f} <= {sym_limit:.2f}")
                 return None
-            elif symbol_pnl < 0 and abs(symbol_pnl) >= 0.8 * abs(limit):
+            elif symbol_pnl < 0 and abs(symbol_pnl) >= 0.8 * abs(sym_limit):
                 stake *= 0.5
         if stake <= 0:
             return None
