@@ -1,6 +1,13 @@
 [
-  "BIO/USD",
-  "PROMPT/USD",
+  "BTC/USDT",
+  "ETH/USDT",
+  "XRP/USDT",
+  "SOL/USDT",
+  "SPK/USD",
+  "LINK/USDT",
+  "BNB/USDT",
+  "TRX/USD",
+  "LTC/USDT",
   "ME/USD",
   "LAYER/USD",
   "NOT/USD",
@@ -9,14 +16,7 @@
   "CLOUD/USD",
   "GMT/USD",
   "PUMP/USD",
-  "LINK/USDT",
   "MOON/USD",
-  "ETH/USDT",
-  "BTC/USDT",
-  "TERM/USD",
-  "TRUMP/USDT",
-  "KEY/USD",
-  "KEEP/USD",
-  "SAFE/USD",
-  "TOKEN/USD"
+  "RED/USD",
+  "FLOW/USD"
 ]
